@@ -63,12 +63,15 @@ TARGET=/usr/local/bin
 ### <-- DEFINES
 
 ### Install Wine to the system
+echo "Installing Wine + i386 architecture..."
 sudo dpkg --add-architecture i386
 sudo apt update
 sudo apt-get install -y wine --install-recommends
+echo "...wine installed!"
 
 ### Detect distribution codename. Needed to resolve correct repos.
 OS_CODENAME=$(grep VERSION_CODENAME /etc/os-release | cut -d= -f2 | tr -d '"')
+echo "Distribution codename is '${OS_CODENAME}'"
 
 ### Create temporary folder that gets destroyed after.
 TMPDIR=$(mktemp -d)
@@ -101,6 +104,7 @@ PACKAGES=(
   wine-${WINE_BRANCH}-i386=${WINE_VERSION}~${OS_CODENAME}-1
 )
 
+echo "Downloading wine-${WINE_BRANCH}-${WINE_VERSION}..."
 DOWNLOAD_DIR="$TMPDIR/downloads"
 mkdir -p "$DOWNLOAD_DIR"
 pushd "$DOWNLOAD_DIR" > /dev/null
@@ -113,11 +117,13 @@ done
 sudo rm -rf "${WINE_INSTALL_LOCATION}"
 sudo mkdir -p "${WINE_INSTALL_LOCATION}"
 
+echo "Installing wine-${WINE_BRANCH}-${WINE_VERSION}..."
 ### Extract the dep packages to target install location
 for deb in *.deb; do
     sudo dpkg-deb -x "$deb" "${WINE_INSTALL_LOCATION}"
 done
 
+echo "Downloading and installing yabridge-${YABRIDGE_VER}..."
 ### Download yabridge and extract to target folder.
 wget -q https://github.com/robbert-vdh/yabridge/releases/download/$YABRIDGE_VER/yabridge-${YABRIDGE_VER}.tar.gz
 tar -C "$YABRIDGE_INSTALL_LOCATION" -xavf yabridge-${YABRIDGE_VER}.tar.gz
@@ -130,7 +136,9 @@ mkdir -p "$SCRIPTS_DIR"
 pushd "$SCRIPTS_DIR" > /dev/null
 
 ### Create wine-yb command
-cat > $WINE_YB.tmp <<EOF
+echo "Creating command ${WINE_YB}..."
+
+cat > $WINE_YB <<EOF
 #!/bin/bash
 export WINEPREFIX="$WINEPREFIX"
 export WINEARCH="win64"
@@ -147,11 +155,13 @@ exec "\$WINE" "\$@"
 EOF
 
 ### Install wine-yb command
-chmod +x $WINE_YB.tmp
-sudo mv $WINE_YB.tmp $TARGET/$WINE_YB
+chmod +x $WINE_YB
+sudo mv $WINE_YB $TARGET/$WINE_YB
+echo "...created and installed to ${TARGET}."
 
 ### Create yabridgectl command
-cat > $YBCTL.tmp <<EOF
+echo "Creating command ${YBCTL}..."
+cat > $YBCTL <<EOF
 #!/bin/bash
 export WINE=$WINEPREFIX
 export WINEPREFIX="$WINEPREFIX"
@@ -160,12 +170,13 @@ exec "${YABRIDGE_INSTALL_LOCATION}/yabridge/yabridgectl" "\$@"
 EOF
 
 ### Install yabridgectl command
-chmod +x $YBCTL.tmp
-sudo mv $YBCTL.tmp $TARGET/$YBCTL
+chmod +x $YBCTL
+sudo mv $YBCTL $TARGET/$YBCTL
+echo "...created and installed to ${TARGET}."
 
 ### Create Wine version selector script
-SELECTOR_SCRIPT="$TARGET/$WV_SELECTOR"
-cat > $WV_SELECTOR.tmp <<'EOF'
+echo "Creating command ${WV_SELECTOR}..."
+cat > $WV_SELECTOR <<'EOF'
 #!/bin/bash
 
 EXE="$1"
@@ -198,27 +209,33 @@ case "$CHOICE" in
 esac
 EOF
 
-chmod +x $VW_SELECTOR.tmp
-sudo mv $VW_SELECTOR.tmp "$SELECTOR_SCRIPT"
+chmod +x $WV_SELECTOR
+sudo mv $WV_SELECTOR $TARGET/$WV_SELECTOR
+echo "...created and installed to ${TARGET}."
 
 ### Create a .desktop file for the selector
-DESKTOP_FILE=~/.local/share/applications/wine-version-selector.desktop
+DESKTOP_FILE=~/.local/share/applications/$WV_SELECTOR.desktop
+echo "Creating ${DESKTOP_FILE}..."
 mkdir -p "$(dirname "$DESKTOP_FILE")"
 cat > "$DESKTOP_FILE" <<EOF
 [Desktop Entry]
 Name=Wine Version Selector
-Exec=$SELECTOR_SCRIPT %f
+Exec=${TARGET}/${WV_SELECTOR} %f
 Type=Application
 MimeType=application/x-ms-dos-executable;application/x-msi;
 NoDisplay=false
 EOF
 
+echo "...done!"
+
 popd > /dev/null
 
 ### Pre-create plugin folders and register them
 function pre_add_plugin_folder() {
+    echo "Adding \"$1\" to yabridge paths..."
     mkdir -p "$1"
     WINELOADER="${WINE_INSTALL_LOCATION}/opt/wine-${WINE_BRANCH}/bin/wine64" "${YABRIDGE_INSTALL_LOCATION}/yabridge/yabridgectl" add "$1"
+    echo "...done!"
 }
 
 pre_add_plugin_folder "$WINEPREFIX/drive_c/Program Files/Common Files/VST3"
@@ -229,12 +246,13 @@ pre_add_plugin_folder "$WINEPREFIX/drive_c/Program Files/Steinberg/VSTPlugins"
 pre_add_plugin_folder "$WINEPREFIX/drive_c/Program Files/Common Files/VST2"
 pre_add_plugin_folder "$WINEPREFIX/drive_c/Program Files/Common Files/Steinberg/VST2"
 
-
 ### Register it as default handler
+echo "Registering ${DESKTOP_FILE} as default exe/msi application..."
 xdg-mime default wine-version-selector.desktop application/x-ms-dos-executable
 xdg-mime default wine-version-selector.desktop application/x-msi
+echo "...done!"
 
 echo
 echo "All Good!" 
-echo "Simply double click any Windows plugin installer and choose \"Audio Plugin Installer (Yabridge Wine)"\ to install it."
-echo "Once installed, use your favourite DAW, but remember to re-scan plugins with it!"
+echo "Simply double click any Windows plugin installer you've downloaded and choose \"Audio Plugin Installer (Yabridge Wine)"\ to install it."
+echo "Once installed, simply use your favourite DAW, but remember to re-scan plugins with it!"
