@@ -83,6 +83,7 @@ trap "rm -rf '$TMPDIR'" EXIT
 wget -qO- https://dl.winehq.org/wine-builds/winehq.key | gpg --dearmor | sudo tee /etc/apt/keyrings/winehq.gpg > /dev/null
 cat > "$TMPDIR/winehq.sources" <<EOF
 Types: deb
+Architectures: amd64 i386
 URIs: https://dl.winehq.org/wine-builds/ubuntu/
 Suites: ${OS_CODENAME}
 Components: main
@@ -124,61 +125,82 @@ for deb in *.deb; do
 done
 
 echo "Downloading and installing yabridge-${YABRIDGE_VER}..."
+rm -rf "${YABRIDGE_INSTALL_LOCATION}/yabridge"
 ### Download yabridge and extract to target folder.
 wget -q https://github.com/robbert-vdh/yabridge/releases/download/$YABRIDGE_VER/yabridge-${YABRIDGE_VER}.tar.gz
 tar -C "$YABRIDGE_INSTALL_LOCATION" -xavf yabridge-${YABRIDGE_VER}.tar.gz
 
-popd > /dev/null
+popd > /dev/null  # exit DOWNLOAD_DIR
 
+### This function replaces given executable with a script
+### that defines WINLOADER pointing to the secondary wine
+### installation before executing the original executable.
+### The original executable name is appended with ".raw".
+function wrap_with_wineloader() {
+  local orig="$1"
+  local path_resolved
+  path_resolved=$(realpath "$orig")
+  mv "$path_resolved" "$path_resolved.raw"
+  cat > "$path_resolved" <<EOF
+#!/bin/bash
+WINELOADER=${WINE_INSTALL_LOCATION}/opt/wine-${WINE_BRANCH}/bin/wine
+exec "${path_resolved}.raw" "\$@"
+EOF
+  
+  chmod +x "$1"
+}
+
+### yabridge's host executables should always use the secondary wine.
+wrap_with_wineloader "$YABRIDGE_INSTALL_LOCATION/yabridge/yabridge-host-32.exe"
+wrap_with_wineloader "$YABRIDGE_INSTALL_LOCATION/yabridge/yabridge-host.exe"
+
+
+### Creates a bash script with given name and given body,
+### and installs it to $TARGET with sudo.
+function create_command() {
+  local script_name="$1"
+  local script_body="$2"
+  
+  echo "Creating command ${script_name}..."
+  # Write to temporary file
+  local tmp_file="./${script_name}"
+  echo "#!/bin/bash" > "$tmp_file"
+  cat >> "$tmp_file" <<EOF
+$script_body
+EOF
+
+  chmod +x "$tmp_file"
+  sudo mv "$tmp_file" "$TARGET/$script_name"
+
+  echo "...created and installed to ${TARGET}."
+
+}
 
 SCRIPTS_DIR="$TMPDIR/scripts"
 mkdir -p "$SCRIPTS_DIR"
 pushd "$SCRIPTS_DIR" > /dev/null
 
-### Create wine-yb command
-echo "Creating command ${WINE_YB}..."
-
-cat > $WINE_YB <<EOF
-#!/bin/bash
+cmd_body='
 export WINEPREFIX="$WINEPREFIX"
 export WINEARCH="win64"
-
 WINE_HOME="${WINE_INSTALL_LOCATION}/opt/wine-${WINE_BRANCH}"
 export PATH="\$WINE_HOME/bin:$PATH"
 export LD_LIBRARY_PATH="\$WINE_HOME/lib64:$LD_LIBRARY_PATH"
 export WINESERVER="\$WINE_HOME/bin/wineserver"
-export WINELOADER="\$WINE_HOME/bin/wine64"
+export WINELOADER="\$WINE_HOME/bin/wine"
 export WINE="\$WINELOADER"
 
-exec "\$WINE" "\$@"
+exec "\$WINE" "\$@"'
+create_command "$WINE_YB" "$cmd_body"
 
-EOF
-
-### Install wine-yb command
-chmod +x $WINE_YB
-sudo mv $WINE_YB $TARGET/$WINE_YB
-echo "...created and installed to ${TARGET}."
-
-### Create yabridgectl command
-echo "Creating command ${YBCTL}..."
-cat > $YBCTL <<EOF
-#!/bin/bash
-export WINE=$WINEPREFIX
+cmd_body='
+export WINE="${WINE_INSTALL_LOCATION}/opt/wine-${WINE_BRANCH}/bin/wine"
 export WINEPREFIX="$WINEPREFIX"
 export WINELOADER="${WINE_INSTALL_LOCATION}/opt/wine-${WINE_BRANCH}/bin/wine"
-exec "${YABRIDGE_INSTALL_LOCATION}/yabridge/yabridgectl" "\$@"
-EOF
+exec "${YABRIDGE_INSTALL_LOCATION}/yabridge/yabridgectl" "\$@"'
+create_command "$YBCTL" "$cmd_body"
 
-### Install yabridgectl command
-chmod +x $YBCTL
-sudo mv $YBCTL $TARGET/$YBCTL
-echo "...created and installed to ${TARGET}."
-
-### Create Wine version selector script
-echo "Creating command ${WV_SELECTOR}..."
-cat > $WV_SELECTOR <<'EOF'
-#!/bin/bash
-
+cmd_body='
 EXE="$1"
 CHOICE=$(zenity --list --radiolist \
   --title="Select Wine version" \
@@ -206,12 +228,8 @@ case "$CHOICE" in
     echo "Cancelled"
     exit 1
     ;;
-esac
-EOF
-
-chmod +x $WV_SELECTOR
-sudo mv $WV_SELECTOR $TARGET/$WV_SELECTOR
-echo "...created and installed to ${TARGET}."
+esac'
+create_command "$WV_SELECTOR" "$cmd_body"
 
 ### Create a .desktop file for the selector
 DESKTOP_FILE=~/.local/share/applications/$WV_SELECTOR.desktop
@@ -228,13 +246,13 @@ EOF
 
 echo "...done!"
 
-popd > /dev/null
+popd > /dev/null #exit SCRIPTS_DIR
 
 ### Pre-create plugin folders and register them
 function pre_add_plugin_folder() {
     echo "Adding \"$1\" to yabridge paths..."
     mkdir -p "$1"
-    WINELOADER="${WINE_INSTALL_LOCATION}/opt/wine-${WINE_BRANCH}/bin/wine64" "${YABRIDGE_INSTALL_LOCATION}/yabridge/yabridgectl" add "$1"
+    WINELOADER="${WINE_INSTALL_LOCATION}/opt/wine-${WINE_BRANCH}/bin/wine" "${YABRIDGE_INSTALL_LOCATION}/yabridge/yabridgectl" add "$1"
     echo "...done!"
 }
 
@@ -254,5 +272,5 @@ echo "...done!"
 
 echo
 echo "All Good!" 
-echo "Simply double click any Windows plugin installer you've downloaded and choose \"Audio Plugin Installer (Yabridge Wine)"\ to install it."
+echo "Simply double click any Windows plugin installer you've downloaded and choose 'Audio Plugin Installer (Yabridge Wine)' to install it."
 echo "Once installed, simply use your favourite DAW, but remember to re-scan plugins with it!"
