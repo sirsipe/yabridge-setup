@@ -65,7 +65,7 @@ TARGET=/usr/local/bin
 ### Install Wine to the system
 echo "Installing Wine + i386 architecture..."
 sudo dpkg --add-architecture i386
-sudo apt update
+sudo apt update || true
 sudo apt-get install -y wine --install-recommends
 echo "...wine installed!"
 
