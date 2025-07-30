@@ -10,6 +10,14 @@ Password will be prompted when needed.
 2. Add executable rights for it with `chmod +x ubuntu-yabridge-installer.sh`
 3. Run `./ubuntu-yabridge-installer.sh`
 
+OR
+```bash
+git clone https://github.com/sirsipe/yabridge-setup
+chmod +x yabridge-setup/ubuntu-yabridge-installer.sh
+./yabridge-setup/ubuntu-yabridge-installer.sh
+```
+
+
 ## Why
 Since yabridge requires very specific wine version to run (wine-staging-9.21 as of 28.7.2025), and it's not reasonable to hold "system wine" back just for that purpose, this script is designed to setup secondary wine version that is separated from the system wine. This way system can always be kept up-to-date. This script also installs yabridge and creates isolated windows environment "WINEPREFIX" that is used with specifically tailored custom commands (wine-yb, wine-version-selector, yabridgectl).
 

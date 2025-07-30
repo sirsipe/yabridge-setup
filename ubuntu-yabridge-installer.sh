@@ -1,48 +1,12 @@
 #!/usr/bin/env bash
 
-##
-#
+###
 # Run as NORMAL USER. Do not run as sudo.
 #
-# Since yabridge requires very specific wine version to run (wine-staging-9.21),
-# and it's not reasonable to hold "system wine" back just for that purpose,
-# this script is designed to setup secondary wine version that is separated
-# from the system wine. This script also installs yabridge and creates wine
-#
-# The secondary wine installation is not fully contanerized, but depends on multiple
-# libraries that are easiest to obtain by installing latest version of wine. 
-# This is fragile setup as it assumes latest version of wine has all the same dependencies.
-#
-# What this script does:
-#
-# - Enables i386 architecture repos
-# - Installs wine with all recommended packages
-# - Adds official WineHQ Repository's PGP signature to keyring
-#
-# - Retrieves specific version (wine-staging-9.21) from WineHQ repos
-#   and unpacks it to /opt/wine-staging-9.21/ so e.g. its binaries are in
-#   /opt/wine-staging-9.21/wine-staging/opt/bin/.
-#
-# - Downloads yabridge and extracts it to $HOME/.local/share/ (as is recommended). 
-#
-# - Creates new command: /usr/local/bin/wine-yb
-#       Points to the secondary 64bit wine with default WINEPREFIX of $HOME/.wine-yb.
-#
-# - Creates new command: /usr/local/bin/yabridgectl
-#       Calls $HOME/.local/share/yabridge/yabridgectl with WINELOADER 
-#       set to secondary wine, and WINEPREFIX set to $HOME/.wine-yb.
-#
-# - Creates new command: /usr/local/bin/wine-version-selector
-#       A script that prompts user whether to use system wine or "yabridge wine". 
-#       This script is set as default .exe and .msi mimetype handler. If yabridge 
-#       version is chosen, then after the program exits, also "yabridgectl sync" 
-#       is called.
-#
-# - Pre-adds known VST2, CLAP and VST3 folders to yabridge from $HOME/.wine-yb WINEPREFIX.
-#
+# See https://github.com/sirsipe/yabridge-setup/blob/main/README.md
 #
 # Author: Simo Erkinheimo, 28.7.2025
-##
+###
 
 # Exit immediately if any command fails.
 set -e
@@ -280,6 +244,9 @@ xdg-mime default wine-version-selector.desktop application/x-msi
 echo "...done!"
 
 echo
+echo
 echo "All Good!" 
 echo "Simply double click any Windows plugin installer you've downloaded and choose 'Audio Plugin Installer (Yabridge Wine)' to install it."
 echo "Once installed, simply use your favourite DAW, but remember to re-scan plugins with it!"
+echo
+echo
