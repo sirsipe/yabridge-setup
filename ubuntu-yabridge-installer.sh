@@ -107,12 +107,12 @@ function wrap_with_wineloader() {
   mv "$path_resolved" "$path_resolved.raw"
   cat > "$path_resolved" <<EOF
 #!/bin/bash
-WINE_HOME=\"${WINE_INSTALL_LOCATION}/opt/wine-${WINE_BRANCH}\"
-export PATH=\"\$WINE_HOME/bin:$PATH\"
-export LD_LIBRARY_PATH=\"\$WINE_HOME/lib64:$LD_LIBRARY_PATH\"
-export WINESERVER=\"\$WINE_HOME/bin/wineserver\"
-export WINELOADER=\"\$WINE_HOME/bin/wine\"
-export WINE=\"\$WINELOADER\"
+WINE_HOME="${WINE_INSTALL_LOCATION}/opt/wine-${WINE_BRANCH}"
+export PATH="\$WINE_HOME/bin:$PATH"
+export LD_LIBRARY_PATH="\$WINE_HOME/lib64:$LD_LIBRARY_PATH"
+export WINESERVER="\$WINE_HOME/bin/wineserver"
+export WINELOADER="\$WINE_HOME/bin/wine"
+export WINE="\$WINELOADER"
 exec "${path_resolved}.raw" "\$@"
 EOF
   
