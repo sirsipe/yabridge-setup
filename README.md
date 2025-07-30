@@ -1,3 +1,6 @@
+# Important
+This script is a classic example of me starting to solve a problem that might not even exist. The GUI issue (https://github.com/robbert-vdh/yabridge/issues/382) might be only on Wayland, which is not the default for Ubuntu Studio 24.04. 
+
 # Yabridge installer (for Ubuntu Studio)
 This is a script build on Ubuntu Studio 24.04, but it could work on other debian based systems too. The attempt is to simplify the magical install procedure of Windows VSTs/CLAPs up to the point that after running this script, user never needs to use terminal to install more such plugins.
 
