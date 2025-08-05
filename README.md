@@ -1,15 +1,29 @@
 # Yabridge installer (for Ubuntu Studio)
 This is a script build on Ubuntu Studio 24.04, but it could work on other debian based systems too. The attempt is to simplify the magical install procedure of Windows VSTs/CLAPs up to the point that after running this script, user never needs to use terminal to install more such plugins. It will also deal with the issue of specific wine version dependecy (staging 9.21) that is atleast in yabridge 5.1.1.
 
-RUN AS USER, NOT AS SUDO!
+### Step 1
+RUN AS USER, NOT AS SUDO! Password will be prompted when needed.
 
-Password will be prompted when needed.
+Open terminal and run:
 
 ```bash
 git clone https://github.com/sirsipe/yabridge-setup
 chmod +x yabridge-setup/ubuntu-yabridge-installer.sh
 ./yabridge-setup/ubuntu-yabridge-installer.sh
 ```
+
+### Step 2
+Download your favourite Windows VST installer and simply double click it (.exe/.msi).
+
+You will be promted whether you are running *"Windows Application (System Wine)"* or *"Audio Plugin Installer (Yabridge Wine)"*. Choose **Audio Plugin Installer (Yabridge Wine)**.
+
+### Step 3
+Open your favourite DAW and rescan plugins. Note that on the first launch of particular plugins, some additional packages might need to be installed. This should be a one time thing and consequent plugin loads are faster.
+
+### WARNING!
+Do **NOT** attempt to run anything from the application menu of from the desktop that gets installed by the Windows plugin installer! Some plugins can have whatever standalone applications, but those standalone apps have two MAJOR issues: First of all they are executed using system wine and **running them will break your yabridge-wine environment!** Secondly, even if you'd change the application runner to the "yabridge wine" or "wine-version-selector", standalone applications will not have yabridge optimized audio pat and they **WILL** have untolerable latency.
+
+-> Always **ONLY** use the installed Windows Plugins as VSTs/CLAPs in host applications, **NEVER** as standalone.
 
 ## What's the purpose of this?
 Since yabridge (5.1.1) requires very specific wine version to run (wine-staging-9.21), and it's not reasonable to hold "system wine" back just for that purpose, this script is designed to setup secondary wine version that is separated from the system wine, to ```/opt/wine-staging-9.21/```. This way system can always be kept up-to-date.
