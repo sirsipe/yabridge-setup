@@ -1,0 +1,6 @@
+Types: deb
+Architectures: amd64 i386
+URIs: https://dl.winehq.org/wine-builds/@@DISTRO_ID@@/
+Suites: @@OS_CODENAME@@
+Components: main
+Signed-By: /etc/apt/keyrings/winehq.gpg

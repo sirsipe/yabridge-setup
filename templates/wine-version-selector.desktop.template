@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Wine Version Selector
+Exec=@@EXECUTABLE@@ %f
+Type=Application
+MimeType=application/x-ms-dos-executable;application/x-msi;
+NoDisplay=false

@@ -1,0 +1,36 @@
+#!/bin/sh
+
+EXE="$1"
+filename=$(basename -- "$EXE")
+
+CHOICE=$(zenity --list --radiolist \
+  --title="Select Wine version" \
+  --text="Choose application type for '${filename}'." \
+  --column "" --column "Application Type (wine version)" --column "wine" \
+  TRUE "Windows Application (System Wine)" "system-wine" \
+  FALSE "Audio Plugin Installer (Yabridge Wine)" "yabridge-wine" \
+  --hide-column=3 \
+  --print-column=3)
+
+case "$CHOICE" in
+  system-wine)
+    exec @@SYSTEM_WINE@@ "$EXE"
+    ;;
+  yabridge-wine)
+    "@@TARGET@@/@@YB_ENV@@" wine "$EXE"
+    if [ $? -eq 0 ]; then
+      "@@YABRIDGE_INSTALL_LOCATION@@/yabridge/yabridgectl" sync
+      exit 0
+    else
+      exit 1
+    fi
+    ;;
+  "")
+    echo "Cancelled"
+    exit 1
+    ;;
+  *)
+    echo "Unknown choice: $CHOICE"
+    exit 1
+    ;;
+esac
