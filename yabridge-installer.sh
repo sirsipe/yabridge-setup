@@ -332,6 +332,7 @@ sed -e "s|@@SYSTEM_WINE@@|${SYSTEM_WINE}|g" \
 sudo chmod +x "${TARGET}/${WV_SELECTOR}"
 
 echo "Creating '$HOME/.local/share/applications/${WV_SELECTOR}.desktop'"
+mkdir -p "$HOME/.local/share/applications"
 sed -e "s|@@EXECUTABLE@@|${TARGET}/${WV_SELECTOR}|g" \
     "${SCRIPT_DIR}/templates/wine-version-selector.desktop.template" > "$HOME/.local/share/applications/${WV_SELECTOR}.desktop"
 
