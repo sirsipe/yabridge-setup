@@ -37,7 +37,7 @@ On first launch, some plugins may install extra components; that’s typically o
 - Debian/Ubuntu or other apt-based distro.  
 - Working **apt** and internet connection.  
 - **zenity** installed for the selection dialog (`sudo apt-get install -y zenity`).  
-- WineHQ must provide `wine-staging 9.21` for your distro `ID` and `VERSION_CODENAME`.  
+- WineHQ must provide `wine-staging 9.21` for your distro `ID` and `VERSION_CODENAME`. This is done by retrieving those variables from `/etc/os-release` and composing the repository path using them: `https://dl.winehq.org/wine-builds/<ID>/dists/<VERSION_CODENAME>/winehq-<VERSION_CODENAME>.sources`.
 - Vulkan-capable GPU and driver (with `vulkaninfo` working) if you want DXVK applied.  
 - Sufficient permissions to install system packages and create files under `/usr/local/bin`, `/opt`, and `$HOME/.local/share`.
 
