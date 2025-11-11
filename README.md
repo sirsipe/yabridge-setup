@@ -1,7 +1,9 @@
 # Yabridge installer (for Ubuntu Studio)
 
-This script is built on **Ubuntu Studio 24.04**, but it should also work on other Debian-based systems.  
+This script is built on **Ubuntu Studio 24.04**, but it should also work on other Debian*-based systems.  
 It simplifies installing Windows VST/CLAP plugins with yabridge so that, after setup, you can just **double-click plugin installers**—no terminal needed. It also pins a specific wine version (**wine-staging 9.21**) for compatibility with **yabridge 5.1.1**, while keeping your **system wine** free to update.
+
+*) Debian Forky is not supported as WineHQ repos do not contain wine-staging-9.21 for it. (Issue #3)
 
 ## Step 1
 **Run as normal user, NOT as sudo.**  
