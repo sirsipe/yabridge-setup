@@ -39,7 +39,7 @@ ensure_i386_architecture_is_set() {
 
     echo "Enabling i386 architecture..."
     run_quiet sudo dpkg --add-architecture i386
-    run_quiet sudo apt-get update
+    run_quiet sudo apt-get update || true
     echo "...OK!" 
 
     if ! is_i386_architecture_enabled; then
@@ -72,7 +72,7 @@ install_winehq_repos() {
   sed -e "s|@@DISTRO_ID@@|${DISTRO_ID}|g" \
     -e "s|@@OS_CODENAME@@|${OS_CODENAME}|g" \
     "${SCRIPT_DIR}/templates/winehq.sources.template" | sudo tee "/etc/apt/sources.list.d/winehq.sources" > /dev/null
-  run_quiet sudo apt-get update
+  run_quiet sudo apt-get update || true
   echo "...OK!" 
   
   WINHQ_ADDED="y"
@@ -247,8 +247,14 @@ fi
 echo
 ### Refresh packages
 echo "Refreshing package cache (sudo apt-get update). Password might be prompted."
-run_quiet sudo apt-get update
+run_quiet sudo apt-get update || true
 echo "Package cache updated."
+
+### curl is needed to retrieve the packages
+echo 
+echo "Ensuring curl is installed..."
+run_quiet sudo apt-get install -y curl
+echo "...OK!"
 
 echo
 ### Install wine using current repos or WineHQ repos if not available.
@@ -282,7 +288,7 @@ if [ "${WINHQ_ADDED}" = "y" ]; then
   if ! grep -r --quiet 'dl.winehq.org' /etc/apt/sources.list /etc/apt/sources.list.d/ 2>/dev/null; then
     sudo rm -f /etc/apt/keyrings/winehq.gpg
   fi
-  run_quiet sudo apt-get update
+  run_quiet sudo apt-get update || true
   echo "...OK!" 
 fi
 
