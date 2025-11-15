@@ -221,6 +221,12 @@ elif is_command_installed "yabridgectl"; then
 
 fi
 
+### curl is needed to retrieve the packages
+echo 
+echo "Ensuring curl is installed..."
+run_quiet sudo apt-get install -y curl
+echo "...OK!"
+
 echo
 ### If WineHQ repos are not yet added, check that we can find them for current distribution.
 ### If we can't, then we must exit immediately.
@@ -249,12 +255,6 @@ echo
 echo "Refreshing package cache (sudo apt-get update). Password might be prompted."
 run_quiet sudo apt-get update || true
 echo "Package cache updated."
-
-### curl is needed to retrieve the packages
-echo 
-echo "Ensuring curl is installed..."
-run_quiet sudo apt-get install -y curl
-echo "...OK!"
 
 echo
 ### Install wine using current repos or WineHQ repos if not available.
