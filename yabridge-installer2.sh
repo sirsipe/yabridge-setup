@@ -136,7 +136,7 @@ if [ -z "$SYSTEM_WINE" ]; then
             sudo apt-get update > /dev/null 2>&1 
             set -e
             
-            if ! sudo apt-get install wine wine32:i386; then
+            if ! sudo apt-get install -y wine wine32:i386; then
                 echo "ERROR: Failed to install wine / wine32:i386." >&2
                 exit 1
             fi
