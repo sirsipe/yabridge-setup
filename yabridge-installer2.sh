@@ -108,6 +108,7 @@ run_filtered() {
 set +e
 SYSTEM_WINE=$(command -v wine)
 set -e
+
 if [ -z "$SYSTEM_WINE" ]; then
     echo
     echo "System wine is not found but it's required to be installed."
@@ -129,8 +130,12 @@ if [ -z "$SYSTEM_WINE" ]; then
                 exit 1
             fi
 
-            run_filtered sudo apt-get update
-
+            # Let's ignore all errors here as update very often has
+            # some errors in live distro -versions.
+            set -e
+            sudo apt-get update 2>&1 /dev/null
+            set +e
+            
             if ! sudo apt-get install wine wine32:i386; then
                 echo "ERROR: Failed to install wine / wine32:i386." >&2
                 exit 1
@@ -303,7 +308,7 @@ echo "...OK!"
 echo
 echo "Initializing '${DEFAULT_WINEPREFIX}'..."
 rm -rf "${DEFAULT_WINEPREFIX}"
-WINEARCH="win64" "${YB_LAUNCHER_TARGET}/${YB_ENV}" wineboot --init > /dev/null 2>&1
+WINEARCH="win64" "${YB_LAUNCHER_TARGET}/${YB_ENV}" wineboot --init 2>&1 /dev/null
 
 
 ## Install wine-version-selector
