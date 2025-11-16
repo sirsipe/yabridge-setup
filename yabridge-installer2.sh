@@ -101,19 +101,21 @@ run_filtered() {
 }
 
 
-## Check for "system-wine"
+## Check for required apps
 set +e
 SYSTEM_WINE=$(command -v wine)
+ZENITY=$(command -v zenity)
+WGET=$(command -v wget)
 set -e
 
-if [ -z "$SYSTEM_WINE" ]; then
+if [ -z "$SYSTEM_WINE" ] || [ -z "$ZENITY" ] || [ -z "$WGET" ]; then
     echo
-    echo "System wine is not found but it's required to be installed."
-    echo "Do you want me to execute following statements?"
+    echo "System wine, zenity and/or wget not found, but they are required."
+    echo "Do you want me to execute following statements to install all required dependencies?"
     echo
     echo "  sudo dpkg --add-architecture i386"
     echo "  sudo apt-get update"
-    echo "  sudo apt-get install wine wine32:i386"
+    echo "  sudo apt-get install wine wine32:i386 zenity wget"
     echo 
     printf "Execute (password might be prompted)? [y/N]: " >&2
     IFS= read answer
@@ -133,8 +135,8 @@ if [ -z "$SYSTEM_WINE" ]; then
             sudo apt-get update > /dev/null 2>&1 
             set -e
             
-            if ! sudo apt-get install -y wine wine32:i386; then
-                echo "ERROR: Failed to install wine / wine32:i386." >&2
+            if ! sudo apt-get install -y wine wine32:i386 zenity wget; then
+                echo "ERROR: Failed to install wine / wine32:i386 / zenity / wget." >&2
                 exit 1
             fi
             
