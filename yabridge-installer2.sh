@@ -133,7 +133,7 @@ if [ -z "$SYSTEM_WINE" ]; then
             # Let's ignore all errors here as update very often has
             # some errors in live distro -versions.
             set -e
-            sudo apt-get update 2>&1 /dev/null
+            sudo apt-get update > /dev/null 2>&1 
             set +e
             
             if ! sudo apt-get install wine wine32:i386; then
