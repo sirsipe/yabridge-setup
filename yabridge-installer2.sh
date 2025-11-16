@@ -308,7 +308,7 @@ echo "...OK!"
 echo
 echo "Initializing '${DEFAULT_WINEPREFIX}'..."
 rm -rf "${DEFAULT_WINEPREFIX}"
-WINEARCH="win64" "${YB_LAUNCHER_TARGET}/${YB_ENV}" wineboot --init 2>&1 /dev/null
+WINEARCH="win64" "${YB_LAUNCHER_TARGET}/${YB_ENV}" wineboot --init > /dev/null 2>&1
 
 
 ## Install wine-version-selector
