@@ -86,18 +86,60 @@ WINE_BIN=${WINE_INSTALL_LOCATION}/opt/wine-staging/bin/wine
 
 DEFAULT_WINEPREFIX="${DEFAULT_WINEPREFIX:-$HOME/.yb-wine}"
 
+# Resolve current directory 
+SCRIPT_DIR="$(cd "$(dirname "$0")" >/dev/null 2>&1 && pwd)"
+THIS_SCRIPT=${SCRIPT_DIR}/$(basename -- "$0")
+
+# Helper function to remove warning vomit from apt-get
+run_filtered() {
+    set +e
+    output="$("$@" 2>&1)"
+    status=$?
+    set -e
+
+    if [ "$status" -ne 0 ]; then
+        printf "%s\n" "$output" | grep -viE '^(W:|WARNING:|Ign:)' >&2
+        return "$status"
+    fi
+}
+
+
 ## Check for "system-wine"
 set +e
 SYSTEM_WINE=$(command -v wine)
 set -e
 if [ -z "$SYSTEM_WINE" ]; then
     echo
-    echo "System wine not found. You should install that first:"
+    echo "System wine is not found but it's required to be installed."
+    echo "Do you want me to execute following statements?"
     echo
-    echo "   sudo apt-get update"
-    echo "   sudo apt-get install wine"
-    echo
-    exit 1
+    echo "  sudo dpkg --add-architecture i386"
+    echo "  sudo apt-get update"
+    echo "  sudo apt-get install wine wine32:i386"
+    echo 
+    printf "Execute (password might be prompted)? [y/N]: " >&2
+    IFS= read answer
+
+    case "$answer" in
+        [yY])
+            echo "This might take a while..."
+
+            if ! sudo dpkg --add-architecture i386; then
+                echo "ERROR: Failed to add i386 architecture." >&2
+                exit 1
+            fi
+
+            run_filtered sudo apt-get update
+
+            if ! sudo apt-get install wine wine32:i386; then
+                echo "ERROR: Failed to install wine / wine32:i386." >&2
+                exit 1
+            fi
+            
+            exec "$THIS_SCRIPT" "$@"
+         ;; 
+        *)    echo "User aborted."; exit 1;;
+    esac
 else
     echo
     echo "Your system wine is: $("$SYSTEM_WINE" --version)"
@@ -114,8 +156,7 @@ WV_SELECTOR=wine-version-selector
 XDG_APP_PATH=$HOME/.local/share/applications/
 
 
-# Resolve current directory and get common functions
-SCRIPT_DIR="$(cd "$(dirname "$0")" >/dev/null 2>&1 && pwd)"
+# Get common functions
 . "${SCRIPT_DIR}/functions.sh"
 
 
@@ -181,18 +222,6 @@ sed -e "s|@@DISTRO_ID@@|${DISTRO_ID}|g" \
     "${SCRIPT_DIR}/templates/wine-repo.list.template" > "${TEMP_REPO}"
 
 
-# Helper function to remove warning vomit from apt-get
-run_filtered() {
-    set +e
-    output="$("$@" 2>&1)"
-    status=$?
-    set -e
-
-    if [ "$status" -ne 0 ]; then
-        printf "%s\n" "$output" | grep -viE '^(W:|WARNING:|Ign:)' >&2
-        return "$status"
-    fi
-}
 
 
 # Update package cache with the tempory repo
@@ -319,7 +348,7 @@ wrap_with_YB_ENV() {
   cat > "${path_resolved}" <<EOF
 #!/bin/sh
 
-NO_DEFAULT_WINEPREFIX=1 exec "${YB_LAUNCHER_TARGET}/${YB_ENV}" "${path_resolved}.raw" "\$@"
+exec "${YB_LAUNCHER_TARGET}/${YB_ENV}" "${path_resolved}.raw" "\$@"
 EOF
   
   chmod +x "$path_resolved"
