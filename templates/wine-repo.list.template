@@ -1,0 +1,2 @@
+deb [arch=amd64 trusted=yes] https://dl.winehq.org/wine-builds/@@DISTRO_ID@@ @@OS_CODENAME@@ main
+deb [arch=i386  trusted=yes] https://dl.winehq.org/wine-builds/@@DISTRO_ID@@ @@OS_CODENAME@@ main

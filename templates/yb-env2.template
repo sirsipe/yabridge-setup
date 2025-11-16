@@ -1,0 +1,22 @@
+#!/bin/sh
+
+if [ -z "$WINEPREFIX" ] && [ "$NO_DEFAULT_WINEPREFIX" != "1" ]; then
+    export WINEPREFIX="@@DEFAULT_WINEPREFIX@@"
+fi
+
+# This prevents wine from creating launchers. Launchers would run with system wine
+# and would possibly break the yabridge specific wineprefix.
+export WINEDLLOVERRIDES="winemenubuilder.exe=d${WINEDLLOVERRIDES:+;$WINEDLLOVERRIDES}"
+
+WINE_HOME="@@WINE_INSTALL_LOCATION@@/opt/wine-@@WINE_BRANCH@@"
+
+export PATH="$WINE_HOME/bin:$PATH"
+export WINESERVER="$WINE_HOME/bin/wineserver"
+export WINELOADER="$WINE_HOME/bin/wine"
+export WINE="$WINELOADER"
+
+if [ "$#" -gt 0 ]; then
+    exec "$@"
+else
+    exec /bin/sh
+fi
