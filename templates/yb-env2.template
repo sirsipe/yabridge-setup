@@ -18,5 +18,5 @@ export WINE="$WINELOADER"
 if [ "$#" -gt 0 ]; then
     exec "$@"
 else
-    exec /bin/sh
+    exec "$SHELL"
 fi
