@@ -176,7 +176,9 @@ if [ -z "$WINETRICKS" ]; then
 fi
 
 # do we now have it?
+set +e
 WINETRICKS=$(command -v winetricks)
+set -e
 
 # yabridge version and install location
 YABRIDGE_VER="${YABRIDGE_VER:-5.1.1}"
