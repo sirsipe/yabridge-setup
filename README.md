@@ -1,4 +1,6 @@
-# Yabridge installer (VERSION 2)
+# Yabridge installer (V2)
+
+**This script is for Ubuntu/Debian based distributions.**
 
 Most of the Windows VST/CLAP plugins work great with following combination:
  - Yabridge 5.1.1 ([Yabridge at GitHub](https://github.com/robbert-vdh/yabridge))
@@ -9,12 +11,23 @@ Since **wine-staging-9.21** is quite old and it's unreasonable (and often not ev
 
 Unfortunately **wine-staging-9.21** is not available in repos for many of the latest OS versions. However, using *as latest repo as possible* seems to be working nicely although it's not very *kosher*.
 
-(Should) works with:
+Should work with:
  - All Ubuntu flavors; using **noble** repos for questing/plucky and above.
  - Pop!_OS; same as Ubuntu
  - Elementary OS; circle, horus; using Ubuntu **noble** repos for others.
  - Mint 21-22; same as Ubuntu
  - Debian; bookworm, trixie; using **trixie** repos for forky and above. However, **winetricks** doesn't seem to be available at least for Trixie, so the script just won't apply the dxvk -patch for it.
+
+Tested with:
+ - ubuntustudio-24.04.3-dvd-amd64.iso
+ - ubuntustudio-25.10-desktop-amd64.iso
+ - ubuntu-24.04.3-desktop-amd64.iso
+ - pop-os_22.04_amd64_intel_58.iso
+ - debian-live-13.2.0-amd64-kde.iso (winetricks not available) 
+
+Test method: Used above live images in VirtualBox, with pass-through USB audio interface. After running the script, installed [NAM Universal by Wavemind](https://wavemind.net/software) and downloaded [REAPER for Linux](https://www.reaper.fm/download.php). Launched without installing, and used the USB audio interface in REAPER with ALSA. 
+
+-> NAM Universal works in all above cases, except without the winetricks in Debian, the GUI is not responsive. I know that also NeuralDSP works the same, as long as you get through its installer which has very severe GUI issues.
 
 ## Installation
 
@@ -47,7 +60,7 @@ You’ll be prompted to choose between:
 
 Choose **Audio Plugin Installer (Yabridge Wine)** to install into yabridge’s isolated wine environment.
 
-**!!! NOTE !!!** Do NOT run anything from the desktop! If you launch e.g. a standalone plugin from desktop, it might use system wine, which WILL corrupt the wine-yb -environment.
+**!!! NOTE !!! Do NOT run anything from the desktop! If you launch e.g. a standalone plugin from desktop, it might use system wine, which WILL corrupt the wine-yb -environment.**
 
 ### Step 3
 
@@ -70,7 +83,7 @@ On first launch, some plugins may install extra components; that’s typically o
  - **yb-env**: `$HOME/.local/share/yb-launcher/yb-env`
  - dedicated wineprefix: `$HOME/.wine-yb`
 
-The path *$HOME/.local/share/yb-launcher/* is added to **$HOME/.bashrc** so the commands **yb-env** and **wine-version-selector** can be used without full path. However, restart/relogin of the terminal is required after running the install script for that to become effective.
+The path `$HOME/.local/share/yb-launcher/` is added to **$HOME/.bashrc** so the commands `yb-env` and `wine-version-selector` can be used without full path. However, restart/relogin of the terminal is required after running the install script for that to become effective.
 
 ## Details
 
