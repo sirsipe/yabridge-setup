@@ -1,4 +1,80 @@
-# Yabridge installer (for Ubuntu Studio)
+# Yabridge installer VERSION 2
+
+Most of the Windows VST/CLAP plugins work great with following combination:
+ - Yabridge 5.1.1
+ - wine-staging-9.21
+ - winetricks dxvk
+
+Since **wine-staging-9.21** is quite old and it's unreasonable (and often not even possible) to downgrade system wine just for good plugin compatibility, this script does an isolated **wine-staging-9.21** installation and patches **yabridge** to use that isolated wine version. It will also create an isolated wineprefix (*$HOME/.wine-yb*) instead of using the default one (*$HOME/.wine*), which is then used by default by the patched **yabridge** version.
+
+Unfortunately **wine-staging-9.21** is not available in repos for many of the latest OS versions. However, using *as latest repo as possible* seems to be working nicely although it's not very *kosher*.
+
+(Should) works with:
+ - All Ubuntu flavors; using **noble** repos for questing/plucky and above.
+ - Pop!_OS; same as Ubuntu
+ - Elementary OS; circle, horus; using Ubuntu **noble** repos for others.
+ - Mint 21-22; same as Ubuntu
+ - Debian; bookworm, trixie; using **trixie** repos for forky and above.
+
+## Installation
+
+### Step 1
+**Run as normal user, NOT as sudo.**  
+You’ll be prompted for your password when needed.
+
+```bash
+git clone https://github.com/sirsipe/yabridge-setup
+./yabridge-setup/yabridge-installer2.sh
+```
+
+### Step 2
+Download your favourite Windows VST/CLAP installer (`.exe`/`.msi`) and simply **double-click** it.
+
+You’ll be prompted to choose between:
+
+- **Windows Application (System Wine)**
+- **Audio Plugin Installer (Yabridge Wine)**
+
+![Wine-Version-Selector](res/wine-selector-screenshot.png)
+
+Choose **Audio Plugin Installer (Yabridge Wine)** to install into yabridge’s isolated wine environment.
+
+### Step 3
+Open your DAW and **rescan plugins**.  
+On first launch, some plugins may install extra components; that’s typically one-time.
+
+---
+
+## Requirements
+
+- **x86_64** system only.  
+- Debian/Ubuntu based distro.  
+- Working **apt-get** and internet connection.  
+- **zenity**, **wget**, **wine** (will be installed by the script)
+- **winetricks** (optional, recommended)
+---
+
+## Install paths
+
+ - wine-staging-9.21: `$HOME/.local/share/wine-staging-9.21/`
+ - yabridge (5.1.1): `$HOME/.local/share/yabridge/`
+ - wine-version-selector: `$HOME/.local/share/yb-launcher/wine-version-selector`
+ - yb-env: `$HOME/.local/share/yb-launcher/yb-env`
+
+The path *$HOME/.local/share/yb-launcher/* is added to **$HOME/.bashrc** so the commands **yb-env** and **wine-version-selector** can be used without full path. However, restart/relogin of the terminal is required after running the install script for that to become effective.
+
+## Version 1 vs Version 2
+
+- Version 2 tries to solve the OS_CODENAME so that it works better with Debian, Mint, PopOs, Elementary OS; including also versions that do not have wine-staging-9.21 in the Wine-HQ repos anymore.
+- Version 2 does not pollute your repositories, but uses temporary sources.
+- If you have all requirements already installed, version 2 does everything with user privileges - everything is installed to userspace.
+- Version 2 allows you to keep your existing wine -prefix
+- Version 2 allows you to NOT install winetricks dxvk (although it's recommended)
+
+
+# EVERYTHING BELOW IS DEPRECATED. RATHER USE THE VERSION 2 SCRIPT!
+
+# V1 DEPRECATED - Yabridge installer (for Ubuntu Studio)
 
 This script is built on **Ubuntu Studio 24.04**, but it should also work on other Debian*-based systems.  
 It simplifies installing Windows VST/CLAP plugins with yabridge so that, after setup, you can just **double-click plugin installers**—no terminal needed. It also pins a specific wine version (**wine-staging 9.21**) for compatibility with **yabridge 5.1.1**, while keeping your **system wine** free to update.
