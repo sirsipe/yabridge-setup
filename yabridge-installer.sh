@@ -1,162 +1,396 @@
 #!/bin/sh
 
-###
-# Run as NORMAL USER. Do not run as sudo.
-#
-# See https://github.com/sirsipe/yabridge-setup/blob/main/README.md
-#
-###
+set -eu
 
-# Exit immediately if any command fails.
-set -e
-
-### DEFINES -->
-## -- Versions and install locations --
-WINE_BRANCH=staging
-WINE_VERSION=9.21
-WINE_INSTALL_LOCATION=/opt/wine-${WINE_BRANCH}-${WINE_VERSION}
-DEFAULT_WINEPREFIX=$HOME/.wine-yb
-YABRIDGE_VER=5.1.1
-YABRIDGE_INSTALL_LOCATION=$HOME/.local/share
-## -- Commands --
-YB_ENV=yb-env
-WV_SELECTOR=wine-version-selector
-TARGET=/usr/local/bin
-### <-- DEFINES
-
-SCRIPT_DIR="$(cd "$(dirname "$0")" >/dev/null 2>&1 && pwd)"
-### Includes
-. "${SCRIPT_DIR}/functions.sh"
+# Include ID and VERSION_CODENAME
 . /etc/os-release
 
-WINHQ_ADDED="n"
+# noble is the last ubuntu repo containing wine-staging-9.21
+UBUNTU_FALLBACK_REPO=noble
 
-### -- ADDITIONAL FUNCTIONS -->
+# trixie is the last debian repo containing wine-staging-9.21
+DEBIAN_FALLBACK_REPO=trixie
 
-### Function to enable i386 architecture if not enabled yet.
-ensure_i386_architecture_is_set() {
-  if ! is_i386_architecture_enabled; then  
+# Mint seems to have UBUNTU_CODENAME we can use
+# to simplify the code.
+if [ "$ID" = "linuxmint" ]; then
+    if [ -z "${UBUNTU_CODENAME:-}" ]; then
+        echo "linuxmint detected but UBUNTU_CODENAME is missing in /etc/os-release" >&2
+        exit 1
+    fi
+    ID=ubuntu
+    VERSION_CODENAME=${UBUNTU_CODENAME}
+fi
 
-    echo "Enabling i386 architecture..."
-    run_quiet sudo dpkg --add-architecture i386
-    run_quiet sudo apt-get update || true
-    echo "...OK!" 
+case "$ID" in
+    ubuntu|pop|elementary)      
+        DISTRO_ID=ubuntu
+        case "$VERSION_CODENAME" in
+            ## Ubuntu and pop
+            questing|plucky)             
+                echo
+                echo "Using '${UBUNTU_FALLBACK_REPO}' repositories since WineHQ doesn't contain wine-staging-9.21 for '${ID} ${VERSION_CODENAME}'.";
+                echo "This might not be....kosher."
+                echo
+                OS_CODENAME=${UBUNTU_FALLBACK_REPO}
+                ;;
+            noble|jammy|focal)
+                OS_CODENAME=${VERSION_CODENAME}
+                ;;
 
-    if ! is_i386_architecture_enabled; then
-      echo "ERROR: It still looks like i386 architecture is not enabled. That's unexpected."
-      exit 1
-    fi  
-  fi  
+            #elementary
+            circe)
+                OS_CODENAME=noble
+                ;;
+            horus)
+                OS_CODENAME=jammy
+                ;;
+        esac
+        ;;
+    debian)
+        DISTRO_ID=debian
+        case "$VERSION_CODENAME" in
+            forky)
+                echo
+                echo "Using '${DEBIAN_FALLBACK_REPO}' repositories since WineHQ doesn't contain wine-staging-9.21 for '${ID} ${VERSION_CODENAME}'.";
+                echo "This might not be....kosher."
+                echo
+                OS_CODENAME=${DEBIAN_FALLBACK_REPO}
+                ;;
+            trixie)
+                OS_CODENAME=trixie
+                ;;
+            bookworm)
+                OS_CODENAME=bookworm
+                ;;
+     esac
+        ;;
+esac
+
+
+# Required environment variables
+: "${DISTRO_ID:?Unable to resolve DISTRO_ID. Set it manually as environment variable and try again.}"
+: "${OS_CODENAME:?Unable to resolve OS_CODENAME. Set it manually as environment variable and try again.}"
+
+### Create temporary folder that gets destroyed after.
+TMPDIR=$(mktemp -d)
+trap "rm -rf '$TMPDIR'" EXIT
+
+WINE_BRANCH="${WINE_BRANCH:-staging}"
+WINE_VERSION="${WINE_VERSION:-9.21}"
+WINE_INSTALL_LOCATION=$HOME/.local/share/wine-${WINE_BRANCH}-${WINE_VERSION}
+WINE_BIN=${WINE_INSTALL_LOCATION}/opt/wine-staging/bin/wine
+
+DEFAULT_WINEPREFIX="${DEFAULT_WINEPREFIX:-$HOME/.yb-wine}"
+
+# Resolve current directory 
+SCRIPT_DIR="$(cd "$(dirname "$0")" >/dev/null 2>&1 && pwd)"
+THIS_SCRIPT=${SCRIPT_DIR}/$(basename -- "$0")
+
+# Helper function to remove warning vomit from apt-get
+run_filtered() {
+    set +e
+    output="$("$@" 2>&1)"
+    status=$?
+    set -e
+
+    if [ "$status" -ne 0 ]; then
+        printf "%s\n" "$output" | grep -viE '^(W:|WARNING:|Ign:)' >&2
+        return "$status"
+    fi
 }
 
-### Function to install WineHQ repos
-install_winehq_repos() {
 
-  if is_winehq_already_in_apt_sources; then
-    echo "ERROR: Calling install_winehq_repos when WineHQ is already in repos!"
-    exit 1
-  fi
+## Check for required apps
+set +e
+SYSTEM_WINE=$(command -v wine)
+ZENITY=$(command -v zenity)
+WGET=$(command -v wget)
+WINETRICKS=$(command -v winetricks)
+set -e
 
-  if [ -z "${DISTRO_ID}" ] || [ -z "${OS_CODENAME}" ]; then
-    echo "ERROR: DISTRO_ID and OS_CODENAME variables must be set before calling install_winehq_repos!"
-    exit 1
-  fi
+if [ -z "$SYSTEM_WINE" ] || [ -z "$ZENITY" ] || [ -z "$WGET" ]; then   
+    echo
+    echo "System wine, zenity and/or wget not found, but they are required."
+    echo "Do you want me to execute following statements to install all required dependencies?"
+    echo
+    echo "  sudo dpkg --add-architecture i386"
+    echo "  sudo apt-get update"
+    echo "  sudo apt-get install -y wine wine32:i386 zenity wget"
+    echo 
+    printf "Execute (password might be prompted)? [y/N]: " >&2
+    IFS= read answer
 
-  ensure_i386_architecture_is_set
+    case "$answer" in
+        [yY])
+            echo "This might take a while..."
 
-  echo "Installing WineHQ gpg key..."
-  wget -qO- https://dl.winehq.org/wine-builds/winehq.key | gpg --dearmor | sudo tee /etc/apt/keyrings/winehq.gpg > /dev/null
-  echo "..OK!"
-  
-  echo "Adding sources and updating package cache..."
-  sed -e "s|@@DISTRO_ID@@|${DISTRO_ID}|g" \
+            if ! sudo dpkg --add-architecture i386; then
+                echo "ERROR: Failed to add i386 architecture." >&2
+                exit 1
+            fi
+
+            # Let's ignore all errors here as update very often has
+            # some errors in live distro -versions.
+            set +e
+            sudo apt-get update > /dev/null 2>&1 
+            set -e
+            
+            if ! sudo apt-get install -y wine wine32:i386 zenity wget; then
+                echo "ERROR: Failed to install wine / wine32:i386 / zenity / wget." >&2
+                exit 1
+            fi
+            
+            exec "$THIS_SCRIPT" "$@"
+         ;; 
+        *)    echo "User aborted."; exit 1;;
+    esac
+else
+    echo
+    echo "Your system wine is: $("$SYSTEM_WINE" --version)"
+fi
+
+if [ -z "$WINETRICKS" ]; then
+
+    echo
+    echo "'winetricks' is missing. It's not compulsory, but it's recommended"
+    echo "as otherwise you might have problems with GUIs of new-ish plugins."
+    echo "Some repos unfortunately might not have it, but installation continues regardless."
+    echo 
+    echo "  sudo apt-get install -y winetricks"
+    echo
+    printf "Execute (password might be prompted)? [y/N]: " >&2
+    IFS= read answer
+    case "$answer" in
+        [yY])
+            set +e
+            if ! sudo apt-get install -y winetricks; then
+                echo "ERROR: Failed to install winetricks." >&2
+                echo "You just need to live without it."
+            fi
+            set -e
+         ;; 
+        *)
+        ;;
+    esac
+fi
+
+# do we now have it?
+set +e
+WINETRICKS=$(command -v winetricks)
+set -e
+
+# yabridge version and install location
+YABRIDGE_VER="${YABRIDGE_VER:-5.1.1}"
+YABRIDGE_INSTALL_LOCATION="${YABRIDGE_INSTALL_LOCATION:-$HOME/.local/share}"
+
+# yb-env and wine-version-selector paths
+YB_LAUNCHER_TARGET=$HOME/.local/share/yb-launcher
+YB_ENV=yb-env
+WV_SELECTOR=wine-version-selector
+XDG_APP_PATH=$HOME/.local/share/applications/
+
+
+# Get common functions
+. "${SCRIPT_DIR}/functions.sh"
+
+
+### Check if wine is already installed to given location
+if directory_exists "${WINE_INSTALL_LOCATION}"; then
+  echo
+  echo "Looks like wine-${WINE_BRANCH}-${WINE_VERSION} is already installed (at '${WINE_INSTALL_LOCATION}')."
+  echo "If you continue, it will removed and reinstalled."
+  printf "Do you want to continue? [y/N]: " >&2
+  IFS= read answer
+
+  case "$answer" in
+    [yY]) ;; # Just continue
+    *)    echo "User aborted."; exit 1;;
+  esac
+fi
+
+
+### Check if yabridge is already installed
+if directory_exists "${YABRIDGE_INSTALL_LOCATION}/yabridge"; then
+  echo
+  echo "Looks like yabridge is already installed (at '${YABRIDGE_INSTALL_LOCATION}/yabridge')."
+  echo "If you continue, it will removed and reinstalled."
+  printf "Do you want to continue? [y/N]: " >&2
+  IFS= read answer
+
+
+  case "$answer" in
+    [yY]) ;; # Just continue
+    *)    echo "User aborted."; exit 1;;
+  esac
+fi
+
+### Check if yb-launcher is already installed
+if directory_exists "${YB_LAUNCHER_TARGET}"; then
+  echo
+  echo "Looks like yb-launcher is already installed (at '${YB_LAUNCHER_TARGET}')."
+  echo "If you continue, it will removed and reinstalled."
+  printf "Do you want to continue? [y/N]: " >&2
+  IFS= read answer
+
+  case "$answer" in
+    [yY]) ;; # Just continue
+    *)    echo "User aborted."; exit 1;;
+  esac
+fi
+
+echo
+echo "Retrieving 'wine-${WINE_BRANCH}-${WINE_VERSION}' into ${WINE_INSTALL_LOCATION}"
+echo "using DISTRO_ID '${DISTRO_ID}' and OS_CODENAME '${OS_CODENAME}'."
+
+TEMP_REPO="${TMPDIR}/wine-temp-repo.list"
+PKG_DIR="${TMPDIR}/wine-temp-packages"
+mkdir -p "${PKG_DIR}"
+APT_STATE_DIR="${TMPDIR}/wine-apt-state"
+mkdir -p "${APT_STATE_DIR}"
+touch "${APT_STATE_DIR}/status"
+
+
+# Create temp-repo.list
+sed -e "s|@@DISTRO_ID@@|${DISTRO_ID}|g" \
     -e "s|@@OS_CODENAME@@|${OS_CODENAME}|g" \
-    "${SCRIPT_DIR}/templates/winehq.sources.template" | sudo tee "/etc/apt/sources.list.d/winehq.sources" > /dev/null
-  run_quiet sudo apt-get update || true
-  echo "...OK!" 
-  
-  WINHQ_ADDED="y"
+    "${SCRIPT_DIR}/templates/wine-repo.list.template" > "${TEMP_REPO}"
 
-  if ! is_winehq_already_in_apt_sources; then
-    echo "ERROR: WineHQ repo still doesn't seem available."
-    exit 1
-  fi
-}
 
-### this function installs system wine from already existing repos
-### or adds WineHQ repos and calls itself recursively if package is not available. 
-### OS_CODENAME and DISTRO_ID should be set before calling this
-install_system_wine() {
-  ### Install wine (and winetricks) if they are available in current repos.
-  if ! is_command_installed "wine" && is_apt_package_available "wine"; then 
 
-    echo "System Wine is not installed, but it's available. Let's install that."  
 
-    ensure_i386_architecture_is_set
+# Update package cache with the tempory repo
+echo
+echo "Updating temporary package cache..."
+run_filtered apt-get -o Dir::State="${APT_STATE_DIR}" \
+    -o Dir::State::status="${APT_STATE_DIR}/status" \
+    -o Dir::Cache="${APT_STATE_DIR}" \
+    -o Dir::Etc::sourcelist="${TEMP_REPO}" \
+    -o Dir::Etc::sourceparts=- \
+    -o APT::Get::List-Cleanup=0 \
+    -o Acquire::Retries=0 \
+    -o Acquire::http::Timeout=5 \
+    -o Acquire::http::ConnectTimeout=3 \
+    update
+echo "...OK!"
 
-    if ! is_command_installed "winetricks" && is_apt_package_available "winetricks"; then 
+# Download packages to temporary ${PKG_DIR}
+echo
+echo "Downloading packages..."
+(
+    cd "${PKG_DIR}"
+    apt-get \
+        -o Dir::State="${APT_STATE_DIR}" \
+        -o Dir::State::status="${APT_STATE_DIR}/status" \
+        -o Dir::Cache="${APT_STATE_DIR}" \
+        -o Dir::Etc::sourcelist="${TEMP_REPO}" \
+        -o Dir::Etc::sourceparts=- \
+        -o APT::Get::List-Cleanup=0 \
+        download \
+        "wine-${WINE_BRANCH}:amd64=${WINE_VERSION}~${OS_CODENAME}-1" \
+        "wine-${WINE_BRANCH}-amd64=${WINE_VERSION}~${OS_CODENAME}-1" \
+        "wine-${WINE_BRANCH}-i386=${WINE_VERSION}~${OS_CODENAME}-1" 
+)
+echo "...OK!"
 
-      echo "Looks like 'winetricks' is available too, so let's install both."
-      echo "Installing 'wine' and 'winetricks'..."
-      run_indented sudo apt-get install -y wine winetricks  
+set +e
+deb_count=$(find "${PKG_DIR}" -maxdepth 1 -name '*.deb' | wc -l || true)
+set -e
 
-    else  
+if [ "$deb_count" -eq 0 ]; then
+  echo "No .deb files found. Check DISTRO_ID, OS_CODENAME and WINE_VERSION." >&2
+  exit 1
+fi
 
-      echo "Installing 'wine'..."
-      run_indented sudo apt-get install -y wine 
+### Prepare the install target
+echo
+echo "Installing packages..."
+rm -rf "${WINE_INSTALL_LOCATION}"
+mkdir -p "${WINE_INSTALL_LOCATION}"
+# Install deps to target
+for deb in "${PKG_DIR}"/*.deb; do
+  [ -f "$deb" ] || continue
+  dpkg-deb -x "$deb" "${WINE_INSTALL_LOCATION}"
+done
+echo "...OK!"
 
-    fi
-    echo "...OK!" 
+## Install yabridge
+echo
+echo "Downloading and installing yabridge-${YABRIDGE_VER}..."
+rm -rf "${YABRIDGE_INSTALL_LOCATION}/yabridge"
+wget -P "${PKG_DIR}" -q https://github.com/robbert-vdh/yabridge/releases/download/$YABRIDGE_VER/yabridge-${YABRIDGE_VER}.tar.gz
+tar -C "${YABRIDGE_INSTALL_LOCATION}" -xavf "${PKG_DIR}/yabridge-${YABRIDGE_VER}.tar.gz" > /dev/null 
+echo "...OK!"
 
-  elif ! is_command_installed "wine" && ! is_apt_package_available "wine" && is_winehq_already_in_apt_sources; then 
+## Install yb-env
+echo
+echo "Installing '${YB_LAUNCHER_TARGET}/${YB_ENV}' with default wine prefix '${DEFAULT_WINEPREFIX}'..."
+mkdir -p "${YB_LAUNCHER_TARGET}"
+sed -e "s|@@DEFAULT_WINEPREFIX@@|${DEFAULT_WINEPREFIX}|g" \
+    -e "s|@@WINE_INSTALL_LOCATION@@|${WINE_INSTALL_LOCATION}|g" \
+    -e "s|@@WINE_BRANCH@@|${WINE_BRANCH}|g" \
+    "${SCRIPT_DIR}/templates/yb-env2.template" > "${YB_LAUNCHER_TARGET}/${YB_ENV}"
+chmod +x "${YB_LAUNCHER_TARGET}/${YB_ENV}"
+echo "...OK!"
 
-    echo "ERROR: WineHQ repo is already set but 'wine' is not installed nor available."
-    exit 1  
 
-  elif is_command_installed "wine" && ! is_command_installed "winetricks" && ! is_apt_package_available "winetricks"; then  
+## Init the wine prefix
+if directory_exists "${DEFAULT_WINEPREFIX}"; then
+    echo
+    echo "Wineprefix '${DEFAULT_WINEPREFIX}' already exists."
+    echo "Should we re-initialize it or leave it as is?"
+    echo "I can't promise the existing one works, but re-initializing it"
+    echo "means all your existing installations will be lost."
+    echo
+    echo "Your call."
+    echo
+    printf "Re-initialize '${DEFAULT_WINEPREFIX}'? [y/N]: " >&2
+    IFS= read answer
+    case "$answer" in
+        [yY]) 
+            rm -rf "${DEFAULT_WINEPREFIX}"
+            WINEARCH="win64" "${YB_LAUNCHER_TARGET}/${YB_ENV}" wineboot --init > /dev/null 2>&1
+            ;;
+        *)
+            ;;
+    esac
+else
+    echo
+    echo "Initializing '${DEFAULT_WINEPREFIX}'..."
+    WINEARCH="win64" "${YB_LAUNCHER_TARGET}/${YB_ENV}" wineboot --init > /dev/null 2>&1
+fi
 
-    if ! is_i386_architecture_enabled; then
-      echo "Wine has been installed but without i386 architecture. Not sure what to do."
-      echo "Maybe remove wine manually and try this script again?"
-      exit 1
-    fi
+## Install wine-version-selector
+echo
+echo "Installing '${YB_LAUNCHER_TARGET}/${WV_SELECTOR}'..."
+mkdir -p "${YB_LAUNCHER_TARGET}"
+sed -e "s|@@SYSTEM_WINE@@|${SYSTEM_WINE}|g" \
+    -e "s|@@TARGET@@|${YB_LAUNCHER_TARGET}|g" \
+    -e "s|@@YB_ENV@@|${YB_ENV}|g" \
+    -e "s|@@YABRIDGE_INSTALL_LOCATION@@|${YABRIDGE_INSTALL_LOCATION}|g" \
+    "${SCRIPT_DIR}/templates/wine-version-selector.template" > "${YB_LAUNCHER_TARGET}/${WV_SELECTOR}"
+chmod +x "${YB_LAUNCHER_TARGET}/${WV_SELECTOR}"
+echo "...OK!"
 
-    echo "System Wine is already installed, but 'winetricks' is not. Installing winetricks..."
-    run_indented sudo apt-get install -y winetricks
-    echo "...OK!" 
+echo
+echo "Installing '${XDG_APP_PATH}/${WV_SELECTOR}.desktop'..."
+mkdir -p "${XDG_APP_PATH}"
+sed -e "s|@@EXECUTABLE@@|${YB_LAUNCHER_TARGET}/${WV_SELECTOR}|g" \
+    "${SCRIPT_DIR}/templates/wine-version-selector.desktop.template" > "${XDG_APP_PATH}/${WV_SELECTOR}.desktop"
+echo "...OK!"
 
-  elif is_command_installed "wine" && is_command_installed "winetricks"; then
-    
-    if ! is_i386_architecture_enabled; then
-      echo "Wine has been installed but without i386 architecture. Not sure what to do."
-      echo "Maybe remove wine manually and try this script again?"
-      exit 1
-    fi
+echo
+echo "Registering '${WV_SELECTOR}.desktop' as default exe/msi application..."
+xdg-mime default "${WV_SELECTOR}.desktop" application/x-ms-dos-executable
+xdg-mime default "${WV_SELECTOR}.desktop" application/x-msi
+echo "...OK!"
 
-    echo "System Wine and 'winetricks' are already installed. Good!"  
-
-  elif ! is_winehq_already_in_apt_sources && [ -n "${DISTRO_ID}" ] && [ -n "${OS_CODENAME}" ]; then 
-
-    echo "Looks like wine is not available in your current repos. Let's add WineHQ repos."
-    install_winehq_repos
-
-    ## Call recursively again.
-    install_system_wine
-
-  else
-
-    echo "ERROR: Unknown case. Exiting."
-    exit 1
-
-  fi  
-} 
 
 ### This function replaces given executable with a script
-### that calls in in context of YB_ENV.
+### that calls in context of YB_ENV.
 ### The original executable name is appended with ".raw".
 wrap_with_YB_ENV() {
-  local orig="$1"
-  local path_resolved
+  orig="$1"
   path_resolved=$(realpath "$orig")
   
   if [ -f "${path_resolved}.raw" ]; then
@@ -168,151 +402,21 @@ wrap_with_YB_ENV() {
   cat > "${path_resolved}" <<EOF
 #!/bin/sh
 
-exec "${TARGET}/${YB_ENV}" "${path_resolved}.raw" "\$@"
+exec "${YB_LAUNCHER_TARGET}/${YB_ENV}" "${path_resolved}.raw" "\$@"
 EOF
   
-  chmod +x "$1"
-  echo "Wrapped '${path_resolved}' with '${TARGET}/${YB_ENV}'." 
+  chmod +x "$path_resolved"
+  echo "Wrapped '${path_resolved}' with '${YB_LAUNCHER_TARGET}/${YB_ENV}'." 
 }
 
 
 ### Pre-create plugin folders and register them
 pre_add_plugin_folder() {
-    echo "Adding \"$1\" to yabridge paths..."
-    mkdir -p "$1"
-    $TARGET/$YB_ENV "${YABRIDGE_INSTALL_LOCATION}/yabridge/yabridgectl" add "$1"
-    echo "...done!"
+    dir=$1
+    echo "- \"$dir\""
+    mkdir -p "$dir"
+    "$YB_LAUNCHER_TARGET/$YB_ENV" "${YABRIDGE_INSTALL_LOCATION}/yabridge/yabridgectl" add "$dir"
 }
-
-
-### <-- ADDITIONAL FUNCTIONS --
-
-### THE SCRIPT ---->
-
-### Get from /etc/os-release
-OS_CODENAME=$VERSION_CODENAME
-DISTRO_ID=$ID
-echo "Your distribution's id is '${DISTRO_ID}' and codename is '${OS_CODENAME}'."
-
-### Ensure we are in x86_64 system.
-if ! is_system_64bit; then
-  echo "ERROR: Expected x86_64 system."
-  exit 1
-fi
-
-### Check if yabridge is already installed
-if directory_exists "${YABRIDGE_INSTALL_LOCATION}/yabridge"; then
-  echo
-  echo "Looks like yabridge is already installed (at '${YABRIDGE_INSTALL_LOCATION}/yabridge')."
-  echo "If you continue, it will removed and reinstalled."
-  read -p "Do you want to continue? [y/N]: " answer
-
-  case "$answer" in
-    [yY]) ;; # Just continue
-    *)    echo "User aborted."; exit 1;;
-  esac
-
-elif is_command_installed "yabridgectl"; then
-
-  echo "Yabridge seems to be installed already, but it's not"
-  echo "at the expected path ('${YABRIDGE_INSTALL_LOCATION}/yabridge')."
-  echo "Not sure what to do. Exiting."
-  exit 1
-
-fi
-
-### curl is needed to retrieve the packages
-echo 
-echo "Ensuring curl is installed..."
-run_quiet sudo apt-get install -y curl
-echo "...OK!"
-
-echo
-### If WineHQ repos are not yet added, check that we can find them for current distribution.
-### If we can't, then we must exit immediately.
-if is_winehq_already_in_apt_sources; then
-
-  echo "WineHQ repos are already added to your system."
-  OS_CODENAME=$(get_winehq_suite)
-  echo "Detected WineHQ codename: ${OS_CODENAME}"
-
-else
-  echo "WineHQ repos not yet added. Attempting to resolve..."
-  
-  if check_WineHQ_repo_exists "${DISTRO_ID}" "${OS_CODENAME}"; then
-    echo "WineHQ Repository FOUND!"
-  else
-    echo "ERROR: Couldn't find WineHQ repository for your Linux distribution."
-    echo "Check available repos from https://gitlab.winehq.org/wine/wine/-/wikis/Debian-Ubuntu"
-    echo "and compare them to your distribution id and codename."
-    echo "You might have better luck, if you override OS_CODENAME and DISTRO_ID variables from the script."
-    exit 1
-  fi
-fi
-
-echo
-### Refresh packages
-echo "Refreshing package cache (sudo apt-get update). Password might be prompted."
-run_quiet sudo apt-get update || true
-echo "Package cache updated."
-
-echo
-### Install wine using current repos or WineHQ repos if not available.
-install_system_wine
-SYSTEM_WINE=$(get_system_wine_path)
-echo "Your system wine is: $(${SYSTEM_WINE} --version)"
-
-### Now check if we previously didn't install WineHQ repos. We need them now.
-if ! is_winehq_already_in_apt_sources; then
-  echo
-  install_winehq_repos
-  
-fi
-
-
-### Create temporary folder that gets destroyed after.
-TMPDIR=$(mktemp -d)
-trap "rm -rf '$TMPDIR'" EXIT
-echo
-echo "Downloading wine-${WINE_BRANCH}-${WINE_VERSION}..."
-cd "$TMPDIR" || exit 1
-
-run_indented apt-get download wine-${WINE_BRANCH}:amd64=${WINE_VERSION}~${OS_CODENAME}-1
-run_indented apt-get download wine-${WINE_BRANCH}-amd64=${WINE_VERSION}~${OS_CODENAME}-1
-run_indented apt-get download wine-${WINE_BRANCH}-i386=${WINE_VERSION}~${OS_CODENAME}-1
-
-if [ "${WINHQ_ADDED}" = "y" ]; then
-  echo
-  echo "Removing WineHQ repos as they are not needed..."
-  sudo rm -f /etc/apt/sources.list.d/winehq.sources
-  if ! grep -r --quiet 'dl.winehq.org' /etc/apt/sources.list /etc/apt/sources.list.d/ 2>/dev/null; then
-    sudo rm -f /etc/apt/keyrings/winehq.gpg
-  fi
-  run_quiet sudo apt-get update || true
-  echo "...OK!" 
-fi
-
-### Prepare the install target
-sudo rm -rf "${WINE_INSTALL_LOCATION}"
-sudo mkdir -p "${WINE_INSTALL_LOCATION}"
-
-echo
-echo "Installing wine-${WINE_BRANCH}-${WINE_VERSION}..."
-### Extract the dep packages to target install location
-for deb in *.deb; do
-    sudo dpkg-deb -x "$deb" "${WINE_INSTALL_LOCATION}"
-done
-echo "...OK!"
-
-echo
-echo "Downloading and installing yabridge-${YABRIDGE_VER}..."
-rm -rf "${YABRIDGE_INSTALL_LOCATION}/yabridge"
-### Download yabridge and extract to target folder.
-wget -q https://github.com/robbert-vdh/yabridge/releases/download/$YABRIDGE_VER/yabridge-${YABRIDGE_VER}.tar.gz
-tar -C "${YABRIDGE_INSTALL_LOCATION}" -xavf yabridge-${YABRIDGE_VER}.tar.gz > /dev/null
-echo "...OK!"
-
-cd - > /dev/null || exit 1  # exit TMPDIR
 
 
 ### yabridge's host executables should always use the secondary wine.
@@ -322,27 +426,7 @@ wrap_with_YB_ENV "${YABRIDGE_INSTALL_LOCATION}/yabridge/yabridge-host.exe"
 
 
 echo
-echo "Installing '${TARGET}/${YB_ENV}'"
-sed -e "s|@@DEFAULT_WINEPREFIX@@|${DEFAULT_WINEPREFIX}|g" \
-    -e "s|@@WINE_INSTALL_LOCATION@@|${WINE_INSTALL_LOCATION}|g" \
-    -e "s|@@WINE_BRANCH@@|${WINE_BRANCH}|g" \
-    "${SCRIPT_DIR}/templates/yb-env.template" | sudo tee "${TARGET}/${YB_ENV}" > /dev/null
-sudo chmod +x "${TARGET}/${YB_ENV}"
-
-echo "Installing '${TARGET}/${WV_SELECTOR}'"
-sed -e "s|@@SYSTEM_WINE@@|${SYSTEM_WINE}|g" \
-    -e "s|@@TARGET@@|${TARGET}|g" \
-    -e "s|@@YB_ENV@@|${YB_ENV}|g" \
-    -e "s|@@YABRIDGE_INSTALL_LOCATION@@|${YABRIDGE_INSTALL_LOCATION}|g" \
-    "${SCRIPT_DIR}/templates/wine-version-selector.template" | sudo tee "${TARGET}/${WV_SELECTOR}" > /dev/null
-sudo chmod +x "${TARGET}/${WV_SELECTOR}"
-
-echo "Creating '$HOME/.local/share/applications/${WV_SELECTOR}.desktop'"
-mkdir -p "$HOME/.local/share/applications"
-sed -e "s|@@EXECUTABLE@@|${TARGET}/${WV_SELECTOR}|g" \
-    "${SCRIPT_DIR}/templates/wine-version-selector.desktop.template" > "$HOME/.local/share/applications/${WV_SELECTOR}.desktop"
-
-echo
+echo "Pre-adding common VST paths..."
 pre_add_plugin_folder "${DEFAULT_WINEPREFIX}/drive_c/Program Files/Common Files/VST3"
 pre_add_plugin_folder "${DEFAULT_WINEPREFIX}/drive_c/Program Files/Common Files/CLAP"
 pre_add_plugin_folder "${DEFAULT_WINEPREFIX}/drive_c/Program Files (x86)/Common Files/CLAP"
@@ -350,30 +434,47 @@ pre_add_plugin_folder "${DEFAULT_WINEPREFIX}/drive_c/Program Files/VST Plugins"
 pre_add_plugin_folder "${DEFAULT_WINEPREFIX}/drive_c/Program Files/Steinberg/VSTPlugins"
 pre_add_plugin_folder "${DEFAULT_WINEPREFIX}/drive_c/Program Files/Common Files/VST2"
 pre_add_plugin_folder "${DEFAULT_WINEPREFIX}/drive_c/Program Files/Common Files/Steinberg/VST2"
-
-### Register it as default handler
-echo
-echo "Registering '${WV_SELECTOR}' as default exe/msi application..."
-xdg-mime default "${WV_SELECTOR}.desktop" application/x-ms-dos-executable
-xdg-mime default "${WV_SELECTOR}.desktop" application/x-msi
 echo "...OK!"
 
-if ! is_command_installed "winetricks" && is_apt_package_available "winetricks"; then
-  echo
-  echo "Installing 'winetricks'..."
-  run_indented sudo apt-get install -y winetricks
-  echo "...OK!"
+echo
+echo "Adding '$YB_ENV' to .bashrc..."
+BASHRC="$HOME/.bashrc"
+PATH_LINE="export PATH=\"${YB_LAUNCHER_TARGET}:\$PATH\""
+if [ -f "$BASHRC" ] && grep -Fq "$PATH_LINE" "$BASHRC"; then
+    echo "...was already there!"
+else
+    {
+        echo ""
+        echo "# Added by yabridge-installer"
+        echo "$PATH_LINE"
+    } >> "$BASHRC"
+    export PATH="$YB_LAUNCHER_TARGET:$PATH"
+    echo "...OK!"
 fi
 
-if is_command_installed "winetricks" && has_vulkan; then
-  echo
-  echo "Applying 'winetricks dxvk' to '${DEFAULT_WINEPREFIX}'..."
-  run_indented $TARGET/$YB_ENV winetricks dxvk
-  echo "...OK!"
-elif has_vulkan; then
-  echo
-  echo "Seems that 'winetricks' is not available, so I'm unable to add"
-  echo "'dxvk patch' that fixes the UI issues of many plugins." 
+if [ -z "$WINETRICKS" ]; then
+    echo
+    echo "WARNING: No 'winetricks' found. Can't apply the 'dxvk' patch"
+    echo "which is often needed for plugin GUIs to work properly."
+else
+    echo
+    echo "Many new-ish plugins use DirectX for rendering the plugin GUI,"
+    echo "and those GUIs often do not work properly without adding a special 'winetricks dxvk' -patch."
+    echo "On the other hand, some older plugins do not work with that patch."
+    echo
+    echo "In my tests, this patch is most often needed, so I'd recommend doing it."
+    echo "You could also add it later yourself by running:"
+    echo "    \"$YB_LAUNCHER_TARGET/$YB_ENV\" \"$WINETRICKS\" dxvk"
+    echo
+    printf "Add the 'winetricks dxvk' patch now? [y/N]: " >&2
+    IFS= read answer
+    case "$answer" in
+        [yY]) 
+            "$YB_LAUNCHER_TARGET/$YB_ENV" "$WINETRICKS" dxvk
+            ;;
+        *)
+            ;;
+    esac
 fi
 
 echo
