@@ -4,7 +4,7 @@
 
 Most of the Windows VST/CLAP plugins work great with following combination:
  - Yabridge 5.1.1 ([Yabridge at GitHub](https://github.com/robbert-vdh/yabridge))
- - wine-staging-9.21 ([WineHQ](https://gitlab.winehq.org/wine/wine/-/wikis/Debian-Ubuntu#third-party-repositories))
+ - wine-staging-9.21 ([WineHQ](https://gitlab.winehq.org/wine/wine/-/wikis/Debian-Ubuntu#third-party-repositories), [The issue with newer wine](https://github.com/robbert-vdh/yabridge/issues/382))
  - winetricks dxvk
 
 Since **wine-staging-9.21** is quite old and it's unreasonable (and often not even possible) to downgrade system wine just for good plugin compatibility, this script does an isolated **wine-staging-9.21** installation and patches yabridge to use that isolated wine version. It will also create an isolated wineprefix (*$HOME/.wine-yb*) instead of using the default one (*$HOME/.wine*), which is then used by default by the patched **yabridge** version.
