@@ -1,11 +1,11 @@
-# Yabridge installer VERSION 2
+# Yabridge installer (VERSION 2)
 
 Most of the Windows VST/CLAP plugins work great with following combination:
- - Yabridge 5.1.1
- - wine-staging-9.21
+ - Yabridge 5.1.1 ([Yabridge at GitHub](https://github.com/robbert-vdh/yabridge))
+ - wine-staging-9.21 ([WineHQ](https://gitlab.winehq.org/wine/wine/-/wikis/Debian-Ubuntu#third-party-repositories))
  - winetricks dxvk
 
-Since **wine-staging-9.21** is quite old and it's unreasonable (and often not even possible) to downgrade system wine just for good plugin compatibility, this script does an isolated **wine-staging-9.21** installation and patches **yabridge** to use that isolated wine version. It will also create an isolated wineprefix (*$HOME/.wine-yb*) instead of using the default one (*$HOME/.wine*), which is then used by default by the patched **yabridge** version.
+Since **wine-staging-9.21** is quite old and it's unreasonable (and often not even possible) to downgrade system wine just for good plugin compatibility, this script does an isolated **wine-staging-9.21** installation and patches yabridge to use that isolated wine version. It will also create an isolated wineprefix (*$HOME/.wine-yb*) instead of using the default one (*$HOME/.wine*), which is then used by default by the patched **yabridge** version.
 
 Unfortunately **wine-staging-9.21** is not available in repos for many of the latest OS versions. However, using *as latest repo as possible* seems to be working nicely although it's not very *kosher*.
 
@@ -14,20 +14,28 @@ Unfortunately **wine-staging-9.21** is not available in repos for many of the la
  - Pop!_OS; same as Ubuntu
  - Elementary OS; circle, horus; using Ubuntu **noble** repos for others.
  - Mint 21-22; same as Ubuntu
- - Debian; bookworm, trixie; using **trixie** repos for forky and above.
+ - Debian; bookworm, trixie; using **trixie** repos for forky and above. However, **winetricks** doesn't seem to be available at least for Trixie, so the script just won't apply the dxvk -patch for it.
 
 ## Installation
 
 ### Step 1
+
+**Prerequisites**
+
+```bash
+sudo apt install git
+```
+
 **Run as normal user, NOT as sudo.**  
 You’ll be prompted for your password when needed.
 
 ```bash
 git clone https://github.com/sirsipe/yabridge-setup
-./yabridge-setup/yabridge-installer2.sh
+./yabridge-setup/yabridge-installer.sh
 ```
 
 ### Step 2
+
 Download your favourite Windows VST/CLAP installer (`.exe`/`.msi`) and simply **double-click** it.
 
 You’ll be prompted to choose between:
@@ -39,11 +47,12 @@ You’ll be prompted to choose between:
 
 Choose **Audio Plugin Installer (Yabridge Wine)** to install into yabridge’s isolated wine environment.
 
+**!!! NOTE !!!** Do NOT run anything from the desktop! If you launch e.g. a standalone plugin from desktop, it might use system wine, which WILL corrupt the wine-yb -environment.
+
 ### Step 3
+
 Open your DAW and **rescan plugins**.  
 On first launch, some plugins may install extra components; that’s typically one-time.
-
----
 
 ## Requirements
 
@@ -52,188 +61,66 @@ On first launch, some plugins may install extra components; that’s typically o
 - Working **apt-get** and internet connection.  
 - **zenity**, **wget**, **wine** (will be installed by the script)
 - **winetricks** (optional, recommended)
----
 
 ## Install paths
 
- - wine-staging-9.21: `$HOME/.local/share/wine-staging-9.21/`
- - yabridge (5.1.1): `$HOME/.local/share/yabridge/`
- - wine-version-selector: `$HOME/.local/share/yb-launcher/wine-version-selector`
- - yb-env: `$HOME/.local/share/yb-launcher/yb-env`
+ - wine-staging-9.21 folder: `$HOME/.local/share/wine-staging-9.21/`
+ - yabridge (5.1.1) folder: `$HOME/.local/share/yabridge/`
+ - **wine-version-selector**: `$HOME/.local/share/yb-launcher/wine-version-selector`
+ - **yb-env**: `$HOME/.local/share/yb-launcher/yb-env`
+ - dedicated wineprefix: `$HOME/.wine-yb`
 
 The path *$HOME/.local/share/yb-launcher/* is added to **$HOME/.bashrc** so the commands **yb-env** and **wine-version-selector** can be used without full path. However, restart/relogin of the terminal is required after running the install script for that to become effective.
 
-## Version 1 vs Version 2
-
-- Version 2 tries to solve the OS_CODENAME so that it works better with Debian, Mint, PopOs, Elementary OS; including also versions that do not have wine-staging-9.21 in the Wine-HQ repos anymore.
-- Version 2 does not pollute your repositories, but uses temporary sources.
-- If you have all requirements already installed, version 2 does everything with user privileges - everything is installed to userspace.
-- Version 2 allows you to keep your existing wine -prefix
-- Version 2 allows you to NOT install winetricks dxvk (although it's recommended)
-
-
-# EVERYTHING BELOW IS DEPRECATED. RATHER USE THE VERSION 2 SCRIPT!
-
-# V1 DEPRECATED - Yabridge installer (for Ubuntu Studio)
-
-This script is built on **Ubuntu Studio 24.04**, but it should also work on other Debian*-based systems.  
-It simplifies installing Windows VST/CLAP plugins with yabridge so that, after setup, you can just **double-click plugin installers**—no terminal needed. It also pins a specific wine version (**wine-staging 9.21**) for compatibility with **yabridge 5.1.1**, while keeping your **system wine** free to update.
-
-*) Debian Forky is not supported as WineHQ repos do not contain wine-staging-9.21 for it. (Issue #3)
-
-## Step 1
-**Run as normal user, NOT as sudo.**  
-You’ll be prompted for your password when needed.
-
-```bash
-git clone https://github.com/sirsipe/yabridge-setup
-chmod +x yabridge-setup/yabridge-installer.sh
-./yabridge-setup/yabridge-installer.sh
-```
-
-## Step 2
-Download your favourite Windows VST/CLAP installer (`.exe`/`.msi`) and simply **double-click** it.
-
-You’ll be prompted to choose between:
-
-- **Windows Application (System Wine)**
-- **Audio Plugin Installer (Yabridge Wine)**
-
-![Wine-Version-Selector](res/wine-selector-screenshot.png)
-
-Choose **Audio Plugin Installer (Yabridge Wine)** to install into yabridge’s isolated wine environment.
-
-## Step 3
-Open your DAW and **rescan plugins**.  
-On first launch, some plugins may install extra components; that’s typically one-time.
-
----
-
-## Requirements
-
-- **x86_64** system only.  
-- Debian/Ubuntu or other apt-based distro.  
-- Working **apt** and internet connection.  
-- **zenity** installed for the selection dialog (`sudo apt-get install -y zenity`).  
-- WineHQ must provide `wine-staging 9.21` for your distro `ID` and `VERSION_CODENAME`. This is done by retrieving those variables from `/etc/os-release` and composing the repository path using them: `https://dl.winehq.org/wine-builds/<ID>/dists/<VERSION_CODENAME>/winehq-<VERSION_CODENAME>.sources`.
-- Vulkan-capable GPU and driver (with `vulkaninfo` working) if you want DXVK applied.  
-- Sufficient permissions to install system packages and create files under `/usr/local/bin`, `/opt`, and `$HOME/.local/share`.
-
----
-
-## What the script does (summary)
-
-- Verifies you’re on **x86_64**; exits otherwise.  
-- Reads your distro info from `/etc/os-release` and checks **WineHQ** availability for your `ID` and `VERSION_CODENAME`.  
-  - If WineHQ doesn’t provide packages for your distro/codename, the script **exits** with instructions.  
-- Ensures **i386** architecture is enabled if needed.  
-- Installs **system wine** (and **winetricks** if available) from your current repos; if wine isn’t available there, it **adds WineHQ repos** and installs.  
-- Determines **system wine** path and prints its version.  
-- Ensures **WineHQ repos** are present (adds them if not) so it can download the pinned side-by-side wine.  
-- Downloads **wine-staging 9.21** Debian packages (amd64/i386) and extracts them to:
-  ```
-  /opt/wine-staging-9.21/
-  ```
-- Downloads **yabridge 5.1.1** and installs to:
-  ```
-  $HOME/.local/share/yabridge
-  ```
-- Creates the environment wrapper:
-  ```
-  /usr/local/bin/yb-env
-  ```
-  which runs commands inside the side wine.  
-- **Wraps** `yabridge-host.exe` and `yabridge-host-32.exe` to always run through `yb-env`.  
-- Pre-creates and **registers common plugin folders** with `yabridgectl add`.  
-- Installs the chooser script:
-  ```
-  /usr/local/bin/wine-version-selector
-  ```
-  and sets it as the default handler for `.exe` and `.msi`.  
-  When you pick **Yabridge Wine**, it also runs `yabridgectl sync`.  
-- If `winetricks` is available **and** Vulkan is detected, applies `winetricks dxvk` to the yabridge prefix to fix many plugin UIs.
-
----
-
 ## Details
 
-### Separate wine installation (side-by-side)
-Yabridge 5.1.1 requires **wine-staging 9.21**.  
-Instead of freezing your system wine at that version, this script installs that exact version **side-by-side** under:
+### yb-env
 
-```
-/opt/wine-staging-9.21/
-```
-
-Your **system wine** can then update independently.
-
-The script also installs **system wine** + **i386** support (and **winetricks** if available) from your repos or WineHQ.
-
-### Yabridge install & prefix
-Yabridge is installed to:
-
-```
-$HOME/.local/share/yabridge
-```
-
-Default isolated prefix:
-
-```
-$HOME/.wine-yb
-```
-
-If `winetricks` is available and **Vulkan** works on your system, the script applies:
-
-```
-winetricks dxvk
-```
-
-to `$HOME/.wine-yb` (improves GUI rendering for many plugins).
-
-### `yb-env` wrapper
-Created at:
-
-```
-/usr/local/bin/yb-env
-```
-
-Runs any command inside the side wine environment. Examples:
-
-```bash
-yb-env wine --version
-# wine-9.21 (Staging)
-
-yb-env winetricks dxvk
-# Applies DXVK to $HOME/.wine-yb if winetricks is installed
-```
-
-> Note: `yb-env` respects an existing `WINEPREFIX`. If `WINEPREFIX` is **unset**, it defaults to `$HOME/.wine-yb`.
-
-### Wrapping yabridge hosts
-The script replaces:
-
-- `yabridge-host.exe`
-- `yabridge-host-32.exe`
-
-with small launchers that call their `.raw` counterparts through `yb-env`.  
-This guarantees plugins always run in the correct wine and prefix.
-
-### Predefined plugin folders
-These folders are created (if missing) and added to yabridge’s search paths:
-
-- `C:/Program Files/Common Files/VST3`
-- `C:/Program Files/Common Files/CLAP`
-- `C:/Program Files (x86)/Common Files/CLAP`
-- `C:/Program Files/VST Plugins`
-- `C:/Program Files/Steinberg/VSTPlugins`
-- `C:/Program Files/Common Files/VST2`
-- `C:/Program Files/Common Files/Steinberg/VST2`
-
-### Wine Version Selector
 Installed at:
 
 ```
-/usr/local/bin/wine-version-selector
+$HOME/.local/share/yb-launcher/yb-env
+```
+
+**yb-env** sets specific environment variables that causes **wine-staging-9.21** at `$HOME/.local/share/wine-staging-9.21/` to take priority for anything following the command. It will also set `WINEPREFIX` to `$HOME/.wine-yb`. 
+
+For example:
+
+```bash
+yb-env wine --version
+``` 
+
+would return *wine-9.21 (Staging)* whereas 
+
+```bash
+wine --version
+```
+
+would return your system wine version.
+
+To apply winetrics to your yabridge environment, you can simply do
+
+```bash
+yb-env winetricks dxvk
+```
+
+The path `$HOME/.local/share/yb-launcher/` is added to `.bashrc`, making `yb-env` invokeable without full path; but you must restart terminal after using the install script.
+
+### How it patches yabridge
+
+The script copies
+- `yabridge-host.exe` -> `yabridge-host.exe.raw` 
+- `yabridge-host-32.exe` -> `yabridge-host-32.exe.raw`
+and then overrides `yabridge-host.exe` and `yabridge-host-32.exe` with launchers that call `yb-env yabridge-host.exe.raw` and `yb-env yabridge-host-32.exe.raw`. 
+
+This guarantees plugins always run in the correct wine and prefix.
+
+### wine-version-selector
+
+Installed at:
+
+```
+$HOME/.local/share/yb-launcher/wine-version-selector
 ```
 
 When you open a `.exe` or `.msi`, it prompts:
@@ -241,7 +128,7 @@ When you open a `.exe` or `.msi`, it prompts:
 - **Windows Application (System Wine)**
 - **Audio Plugin Installer (Yabridge Wine)**
 
-Picking **Yabridge Wine** runs the installer in the side environment and then:
+Picking **Yabridge Wine** runs the installer in `yb-env' context and then:
 
 ```
 yabridgectl sync
@@ -254,75 +141,32 @@ $HOME/.local/share/applications/wine-version-selector.desktop
 ```
 
 and registers it as the default handler for `.exe` and `.msi` via `xdg-mime`.  
-The selector uses **zenity** for the GUI prompt (install `zenity` if your desktop doesn’t include it).
+The selector uses **zenity** for the GUI prompt.
 
 ![Wine-Version-Selector](res/wine-selector-screenshot.png)
 
----
+The path `$HOME/.local/share/yb-launcher/` is added to `.bashrc`, making `wine-version-selector` invokeable without full path; but you must restart terminal after using the install script.
 
-## Warnings
+## Predefined plugin folders
+These folders are created (if missing) and added to yabridge’s search paths:
 
-- **Do NOT run standalone Windows apps** that plugin installers might add to your menu/desktop.  
-  They launch with **system wine** and can **break** the yabridge environment.  
-- Always use the plugins **inside your DAW**, not as standalone apps.
+`C:/` is `$HOME/.wine-yb/drive_c/`
 
----
+- `C:/Program Files/Common Files/VST3`
+- `C:/Program Files/Common Files/CLAP`
+- `C:/Program Files (x86)/Common Files/CLAP`
+- `C:/Program Files/VST Plugins`
+- `C:/Program Files/Steinberg/VSTPlugins`
+- `C:/Program Files/Common Files/VST2`
+- `C:/Program Files/Common Files/Steinberg/VST2`
 
-## Uninstall — Remove Everything
 
-To fully remove all changes made by the script:
+## Version 1 vs Version 2
 
-1. **Remove side Wine installation**  
-   ```bash
-   sudo rm -rf /opt/wine-staging-9.21
-   ```
+This is the 2nd version of the script. The first version was introduce in [this YouTube Video](https://www.youtube.com/watch?v=2-t1uocytKs).
 
-2. **Remove Yabridge installation**  
-   ```bash
-   rm -rf "$HOME/.local/share/yabridge"
-   ```
-
-3. **Remove the default Yabridge wine prefix**  
-   ```bash
-   rm -rf "$HOME/.wine-yb"
-   ```
-
-4. **Remove wrapper scripts and selector**  
-   ```bash
-   sudo rm -f /usr/local/bin/yb-env
-   sudo rm -f /usr/local/bin/wine-version-selector
-   rm -f "$HOME/.local/share/applications/wine-version-selector.desktop"
-   ```
-
-5. **Optionally remove WineHQ repository and key** (if you no longer want them)  
-   ```bash
-   sudo rm -f /etc/apt/sources.list.d/winehq.sources
-   sudo rm -f /etc/apt/keyrings/winehq.gpg
-   sudo apt-get update
-   ```
-
----
-
-## FAQ
-
-**Where are the main pieces installed?**
-- Side wine: `/opt/wine-staging-9.21/`
-- Yabridge: `$HOME/.local/share/yabridge`
-- Default prefix: `$HOME/.wine-yb`
-- Environment wrapper: `/usr/local/bin/yb-env`
-- Chooser: `/usr/local/bin/wine-version-selector`
-
-**How do I check which wine my plugin uses?**  
-Everything launched by yabridge hosts goes through `yb-env`, so:
-
-```bash
-yb-env wine --version
-```
-
-should show `wine-9.21 (Staging)`.
-
----
-
-## TODO
-- Add known yabridge groupings/configurations.
-- More testing.
+- Version 2 tries to solve the OS_CODENAME so that it works better with Debian, Mint, PopOs, Elementary OS; including also versions that do not have wine-staging-9.21 in the Wine-HQ repos anymore.
+- Version 2 does not pollute your repositories, but uses temporary apt sources.
+- If you have all requirements already installed, version 2 does everything with user privileges - everything is installed to userspace.
+- Version 2 allows you to keep your existing wine -prefix
+- Version 2 allows you to NOT install winetricks dxvk (although it's recommended)
