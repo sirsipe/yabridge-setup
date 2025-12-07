@@ -476,6 +476,7 @@ if [ -f "$BASHRC" ]; then
         echo "$PATH_LINE"
     } >> "$BASHRC"
     echo "...OK!"
+    fi
 else
     echo
     echo "WARNING: You don't seem to have $HOME/.bashrc so you're probably using different terminal."
