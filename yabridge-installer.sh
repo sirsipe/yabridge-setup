@@ -449,7 +449,8 @@ else
     echo
     echo "In my tests, this patch is most often needed, so I'd recommend doing it."
     echo "You could also add it later yourself by running:"
-    echo "    \"$YB_LAUNCHER_TARGET/$YB_ENV\" \"$WINETRICKS\" dxvk"
+    echo
+    echo "    $YB_ENV winetricks dxvk"
     echo
     printf "Add the 'winetricks dxvk' patch now? [y/N]: " >&2
     IFS= read answer
@@ -480,7 +481,7 @@ if [ -f "$BASHRC" ]; then
 else
     echo
     echo "WARNING: You don't seem to have $HOME/.bashrc so you're probably using different terminal."
-    echo "You might want to manually add \"${YB_LAUNCHER_TARGET}\" to your PATH variable for convenience."
+    echo "You might want to manually add \"${YB_LAUNCHER_TARGET}\" folder to your PATH variable for convenience."
 fi
 
 echo
