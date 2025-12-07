@@ -436,21 +436,6 @@ pre_add_plugin_folder "${DEFAULT_WINEPREFIX}/drive_c/Program Files/Common Files/
 pre_add_plugin_folder "${DEFAULT_WINEPREFIX}/drive_c/Program Files/Common Files/Steinberg/VST2"
 echo "...OK!"
 
-echo
-echo "Adding '$YB_ENV' to .bashrc..."
-BASHRC="$HOME/.bashrc"
-PATH_LINE="export PATH=\"${YB_LAUNCHER_TARGET}:\$PATH\""
-if [ -f "$BASHRC" ] && grep -Fq "$PATH_LINE" "$BASHRC"; then
-    echo "...was already there!"
-else
-    {
-        echo ""
-        echo "# Added by yabridge-installer"
-        echo "$PATH_LINE"
-    } >> "$BASHRC"
-    export PATH="$YB_LAUNCHER_TARGET:$PATH"
-    echo "...OK!"
-fi
 
 if [ -z "$WINETRICKS" ]; then
     echo
@@ -477,14 +462,31 @@ else
     esac
 fi
 
+BASHRC="$HOME/.bashrc"
+if [ -f "$BASHRC" ]; then
+    echo
+    echo "Adding '$YB_ENV' to .bashrc..."
+    PATH_LINE="export PATH=\"${YB_LAUNCHER_TARGET}:\$PATH\""
+    if [ -f "$BASHRC" ] && grep -Fq "$PATH_LINE" "$BASHRC"; then
+        echo "...was already there!"
+    else
+    {
+        echo ""
+        echo "# Added by yabridge-installer"
+        echo "$PATH_LINE"
+    } >> "$BASHRC"
+    echo "...OK!"
+else
+    echo
+    echo "WARNING: You don't seem to have $HOME/.bashrc so you're probably using different terminal."
+    echo "You might want to manually add \"${YB_LAUNCHER_TARGET}\" to your PATH variable for convenience."
+fi
+
 echo
+echo "ALL DONE!" 
 echo
-echo "All Good!" 
-echo
-echo "Simply double click any Windows plugin installer (exe/msi) you've downloaded"
+echo "Now double click any Windows plugin installer (exe/msi) you've downloaded"
 echo "and choose 'Audio Plugin Installer (Yabridge Wine)' to install it."
 echo 
-echo "Once installed, simply use your favourite DAW,"
-echo "but remember to re-scan plugins with it!"
-echo
+echo "Once installed, simply use your favourite DAW and re-scan plugins!"
 echo
