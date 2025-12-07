@@ -64,6 +64,7 @@ Tested with:
  - ubuntustudio-25.10-desktop-amd64.iso
  - ubuntu-24.04.3-desktop-amd64.iso
  - pop-os_22.04_amd64_intel_58.iso
+ - linuxmint-22.2-cinnamon-64bit.iso
  - debian-live-13.2.0-amd64-kde.iso (winetricks not available) 
 
 Test method: Used above live images in VirtualBox, with pass-through USB audio interface. After running the script, installed [NAM Universal by Wavemind](https://wavemind.net/software) and downloaded [REAPER for Linux](https://www.reaper.fm/download.php). Launched REAPER without installing, and used the passed-through USB audio interface in REAPER with ALSA; 256/48kHz. 
