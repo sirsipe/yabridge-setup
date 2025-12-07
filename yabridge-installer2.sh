@@ -153,7 +153,7 @@ fi
 if [ -z "$WINETRICKS" ]; then
 
     echo
-    echo "'winetricks' is still missing. It's not compulsory, but it's recommended"
+    echo "'winetricks' is missing. It's not compulsory, but it's recommended"
     echo "as otherwise you might have problems with GUIs of new-ish plugins."
     echo "Some repos unfortunately might not have it, but installation continues regardless."
     echo 
@@ -335,7 +335,7 @@ if directory_exists "${DEFAULT_WINEPREFIX}"; then
     echo
     echo "Wineprefix '${DEFAULT_WINEPREFIX}' already exists."
     echo "Should we re-initialize it or leave it as is?"
-    echo "I can't promise the existing one works, but re-initializing it
+    echo "I can't promise the existing one works, but re-initializing it"
     echo "means all your existing installations will be lost."
     echo
     echo "Your call."
@@ -450,7 +450,7 @@ fi
 
 if [ -z "$WINETRICKS" ]; then
     echo
-    echo "WARNING: No 'winetricks' found. Can't apply the 'dxvk' patch
+    echo "WARNING: No 'winetricks' found. Can't apply the 'dxvk' patch"
     echo "which is often needed for plugin GUIs to work properly."
 else
     echo
@@ -461,6 +461,7 @@ else
     echo "In my tests, this patch is most often needed, so I'd recommend doing it."
     echo "You could also add it later yourself by running:"
     echo "    \"$YB_LAUNCHER_TARGET/$YB_ENV\" \"$WINETRICKS\" dxvk"
+    echo
     printf "Add the 'winetricks dxvk' patch now? [y/N]: " >&2
     IFS= read answer
     case "$answer" in
