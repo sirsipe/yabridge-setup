@@ -66,13 +66,13 @@ Tested with:
  - pop-os_22.04_amd64_intel_58.iso
  - debian-live-13.2.0-amd64-kde.iso (winetricks not available) 
 
-Test method: Used above live images in VirtualBox, with pass-through USB audio interface. After running the script, installed [NAM Universal by Wavemind](https://wavemind.net/software) and downloaded [REAPER for Linux](https://www.reaper.fm/download.php). Launched without installing, and used the USB audio interface in REAPER with ALSA. 
+Test method: Used above live images in VirtualBox, with pass-through USB audio interface. After running the script, installed [NAM Universal by Wavemind](https://wavemind.net/software) and downloaded [REAPER for Linux](https://www.reaper.fm/download.php). Launched REAPER without installing, and used the passed-through USB audio interface in REAPER with ALSA; 256/48kHz. 
 
--> [NAM Universal](https://wavemind.net/software) works in all above cases, except without the winetricks in Debian, the GUI is not responsive. I know that also e.g. [NeuralDSP](https://neuraldsp.com/) works the same, as long as you get through its installer which has very severe GUI issues. I've also personally tested that [Melodyne](https://www.celemony.com/en/melodyne/what-is-melodyne) works with this setup (at least in Ubuntu Studio 24.04).
+-> [NAM Universal](https://wavemind.net/software) works in all above cases, except without the winetricks in Debian, the GUI is not responsive. I know that also e.g. [NeuralDSP](https://neuraldsp.com/) works the same, as long as you get through its installer which has very severe GUI issues. I've also personally tested that [Melodyne](https://www.celemony.com/en/melodyne/what-is-melodyne) works with this setup (at least in Ubuntu Studio 24.04) and also [Neural Amp Modeler](https://www.neuralampmodeler.com/) (although there are plenty of Linux native options for it, too).
 
 ### Take care of your licenses!
 
-E.g. with [NeuralDSP](https://neuraldsp.com/), it seems that license activations get consumed, if you recreate the wine-yb environment; which means that the license is not just hardware-bound, but also OS bound. I'm not sure if it helps or not, but I'd recommend taking periodic backups after activation:
+E.g. with [NeuralDSP](https://neuraldsp.com/), it seems that license activations get consumed if you recreate the wine-yb environment; which means that the license is not just hardware-bound, but also OS bound. I'm not sure if it helps or not, but I'd recommend taking periodic backups after activation:
 
 ```bash
 tar -cf wine-yb-licenses-backup.tar $HOME/.wine-yb
