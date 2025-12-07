@@ -163,10 +163,12 @@ if [ -z "$WINETRICKS" ]; then
     IFS= read answer
     case "$answer" in
         [yY])
+            set +e
             if ! sudo apt-get install -y winetricks; then
                 echo "ERROR: Failed to install winetricks." >&2
                 echo "You just need to live without it."
             fi
+            set -e
          ;; 
         *)
         ;;
