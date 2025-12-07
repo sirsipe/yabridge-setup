@@ -106,16 +106,17 @@ set +e
 SYSTEM_WINE=$(command -v wine)
 ZENITY=$(command -v zenity)
 WGET=$(command -v wget)
+WINETRICKS=$(command -v winetricks)
 set -e
 
-if [ -z "$SYSTEM_WINE" ] || [ -z "$ZENITY" ] || [ -z "$WGET" ]; then
+if [ -z "$SYSTEM_WINE" ] || [ -z "$ZENITY" ] || [ -z "$WGET" ]; then   
     echo
     echo "System wine, zenity and/or wget not found, but they are required."
     echo "Do you want me to execute following statements to install all required dependencies?"
     echo
     echo "  sudo dpkg --add-architecture i386"
     echo "  sudo apt-get update"
-    echo "  sudo apt-get install wine wine32:i386 zenity wget"
+    echo "  sudo apt-get install -y wine wine32:i386 zenity wget"
     echo 
     printf "Execute (password might be prompted)? [y/N]: " >&2
     IFS= read answer
@@ -148,6 +149,32 @@ else
     echo
     echo "Your system wine is: $("$SYSTEM_WINE" --version)"
 fi
+
+if [ -z "$WINETRICKS" ]; then
+
+    echo
+    echo "'winetricks' is still missing. It's not compulsory, but it's recommended"
+    echo "as otherwise you might have problems with GUIs of new-ish plugins."
+    echo "Some repos unfortunately might not have it, but installation continues regardless."
+    echo 
+    echo "  sudo apt-get install -y winetricks"
+    echo
+    printf "Execute (password might be prompted)? [y/N]: " >&2
+    IFS= read answer
+    case "$answer" in
+        [yY])
+            if ! sudo apt-get install -y winetricks; then
+                echo "ERROR: Failed to install winetricks." >&2
+                echo "You just need to live without it."
+            fi
+         ;; 
+        *)
+        ;;
+    esac
+fi
+
+# do we now have it?
+WINETRICKS=$(command -v winetricks)
 
 # yabridge version and install location
 YABRIDGE_VER="${YABRIDGE_VER:-5.1.1}"
@@ -304,11 +331,30 @@ echo "...OK!"
 
 
 ## Init the wine prefix
-echo
-echo "Initializing '${DEFAULT_WINEPREFIX}'..."
-rm -rf "${DEFAULT_WINEPREFIX}"
-WINEARCH="win64" "${YB_LAUNCHER_TARGET}/${YB_ENV}" wineboot --init > /dev/null 2>&1
-
+if directory_exists "${DEFAULT_WINEPREFIX}"; then
+    echo
+    echo "Wineprefix '${DEFAULT_WINEPREFIX}' already exists."
+    echo "Should we re-initialize it or leave it as is?"
+    echo "I can't promise the existing one works, but re-initializing it
+    echo "means all your existing installations will be lost."
+    echo
+    echo "Your call."
+    echo
+    printf "Re-initialize '${DEFAULT_WINEPREFIX}'? [y/N]: " >&2
+    IFS= read answer
+    case "$answer" in
+        [yY]) 
+            rm -rf "${DEFAULT_WINEPREFIX}"
+            WINEARCH="win64" "${YB_LAUNCHER_TARGET}/${YB_ENV}" wineboot --init > /dev/null 2>&1
+            ;;
+        *)
+            ;;
+    esac
+else
+    echo
+    echo "Initializing '${DEFAULT_WINEPREFIX}'..."
+    WINEARCH="win64" "${YB_LAUNCHER_TARGET}/${YB_ENV}" wineboot --init > /dev/null 2>&1
+fi
 
 ## Install wine-version-selector
 echo
@@ -337,7 +383,7 @@ echo "...OK!"
 
 
 ### This function replaces given executable with a script
-### that calls in in context of YB_ENV.
+### that calls in context of YB_ENV.
 ### The original executable name is appended with ".raw".
 wrap_with_YB_ENV() {
   orig="$1"
@@ -402,6 +448,30 @@ else
     echo "...OK!"
 fi
 
+if [ -z "$WINETRICKS" ]; then
+    echo
+    echo "WARNING: No 'winetricks' found. Can't apply the 'dxvk' patch
+    echo "which is often needed for plugin GUIs to work properly."
+else
+    echo
+    echo "Many new-ish plugins use DirectX for rendering the plugin GUI,"
+    echo "and those GUIs often do not work properly without adding a special 'winetricks dxvk' -patch."
+    echo "On the other hand, some older plugins do not work with that patch."
+    echo
+    echo "In my tests, this patch is most often needed, so I'd recommend doing it."
+    echo "You could also add it later yourself by running:"
+    echo "    \"$YB_LAUNCHER_TARGET/$YB_ENV\" \"$WINETRICKS\" dxvk"
+    printf "Add the 'winetricks dxvk' patch now? [y/N]: " >&2
+    IFS= read answer
+    case "$answer" in
+        [yY]) 
+            "$YB_LAUNCHER_TARGET/$YB_ENV" "$WINETRICKS" dxvk
+            ;;
+        *)
+            ;;
+    esac
+fi
+
 echo
 echo
 echo "All Good!" 
@@ -411,15 +481,5 @@ echo "and choose 'Audio Plugin Installer (Yabridge Wine)' to install it."
 echo 
 echo "Once installed, simply use your favourite DAW,"
 echo "but remember to re-scan plugins with it!"
-echo
-echo "NOTE! If a plugin's UI is unresponsive, but the plugin seems to otherwise work,"
-echo "you likely need to apply 'dxvk' patch with winetricks:"
-echo 
-echo "  # Install winetricks"
-echo "  sudo apt update"  
-echo "  sudo apt install winetricks"
-echo 
-echo "  # Apply 'winetricks dxvk' to yabridge environment"
-echo "  yb-env winetricks dxvk"
 echo
 echo
