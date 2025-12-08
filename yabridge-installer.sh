@@ -11,15 +11,19 @@ UBUNTU_FALLBACK_REPO=noble
 # trixie is the last debian repo containing wine-staging-9.21
 DEBIAN_FALLBACK_REPO=trixie
 
-# Mint seems to have UBUNTU_CODENAME we can use
+# Mint seems to have UBUNTU_CODENAME or DEBIAN_CODENAME we can use
 # to simplify the code.
 if [ "$ID" = "linuxmint" ]; then
-    if [ -z "${UBUNTU_CODENAME:-}" ]; then
-        echo "linuxmint detected but UBUNTU_CODENAME is missing in /etc/os-release" >&2
+    if [ -n "${UBUNTU_CODENAME:-}" ]; then
+        ID=ubuntu
+        VERSION_CODENAME=${UBUNTU_CODENAME}
+    elif [ -n "${DEBIAN_CODENAME:-}" ]; then
+        ID=debian
+        VERSION_CODENAME=${DEBIAN_CODENAME}
+    else
+        echo "linuxmint detected but both UBUNTU_CODENAME and DEBIAN_CODENAME are missing in /etc/os-release" >&2
         exit 1
     fi
-    ID=ubuntu
-    VERSION_CODENAME=${UBUNTU_CODENAME}
 fi
 
 case "$ID" in
