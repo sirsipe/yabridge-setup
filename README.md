@@ -60,6 +60,7 @@ On first launch, some plugins may install extra components; that’s typically o
 ## Testing & Notes
 
 Tested with:
+ - ubuntustudio-26.04-desktop-amd64.iso (Tested with NeuralDSP Misha Mansoor in Reaper).
  - ubuntustudio-24.04.3-dvd-amd64.iso
  - ubuntustudio-25.10-desktop-amd64.iso
  - ubuntu-24.04.3-desktop-amd64.iso
