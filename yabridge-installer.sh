@@ -31,7 +31,7 @@ case "$ID" in
         DISTRO_ID=ubuntu
         case "$VERSION_CODENAME" in
             ## Ubuntu and pop
-            questing|plucky)             
+            questing|plucky|resolute)             
                 echo
                 echo "Using '${UBUNTU_FALLBACK_REPO}' repositories since WineHQ doesn't contain wine-staging-9.21 for '${ID} ${VERSION_CODENAME}'.";
                 echo "This might not be....kosher."
