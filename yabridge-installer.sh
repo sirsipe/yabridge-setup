@@ -27,7 +27,7 @@ if [ "$ID" = "linuxmint" ]; then
 fi
 
 case "$ID" in
-    ubuntu|pop|elementary)      
+    ubuntu|pop|elementary|zorin)      
         DISTRO_ID=ubuntu
         case "$VERSION_CODENAME" in
             ## Ubuntu and pop
