@@ -17,6 +17,7 @@ Should work with:
  - Elementary OS; circle, horus; using Ubuntu **noble** repos for others.
  - Mint 21-22; same as Ubuntu
  - Debian; bookworm, trixie; using **trixie** repos for forky and above. However, **winetricks** doesn't seem to be available at least for Trixie, so the script just won't apply the dxvk -patch for it.
+ - ZorinOS
 
 ## Installation
 
