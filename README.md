@@ -1,3 +1,5 @@
+--> **NEW** (29.07.2026): I've opened a list of [Verified Plugins](verified-plugins.md). Contributions are very welcome! <--
+
 # Yabridge installer (V2)
 
 **This script is for Ubuntu/Debian based distributions.**
