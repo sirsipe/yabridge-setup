@@ -14,3 +14,4 @@ Note that some additional plugins are mentioned in [official yabridge page](http
 |MeldaProductions MSoundFactory|17.09|Reaper|-|-|elementary OS 8.1|[Dale Hards](https://www.facebook.com/groups/337102376387789/user/730215252/), 29.07.2026|
 |Fabfilter Total Bundle|???|BitWig|-|-|Pop_OS!|[FB Group: Linux Musicians](https://www.facebook.com/groups/linuxmusicians), unknown date|
 |XNL Audio Addictive Drums|???|BitWig|-|-|Pop_OS!|[FB Group: Linux Musicians](https://www.facebook.com/groups/linuxmusicians), unknown date|
+|Arturia Keyboard Collection and Effects Collection|~from 2019|Reaper, BitWig|dxvk, vc_redist.x64.exe (from microsoft site)|Works rock stable, the only issue I have some menus are not displaying correctly, like quick preset switch. But it's totally usable.|Debian, Manjaro|[u/nevsky_sun](https://www.reddit.com/user/nevsky_sun/), 29.07.2026| 
