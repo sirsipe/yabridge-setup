@@ -11,4 +11,4 @@ Note that some additional plugins are mentioned in [official yabridge page](http
 |Toontrack Product Manager|1.1.8|Standalone|tested with dxvk|Software required for obtaining/installing [Toontrack](https://www.toontrack.com/) plugins. It's likely that if one plugin works, then all work.|Ubuntu Studio 26.04|[Simo Erkinheimo](https://github.com/sirsipe), 29.07.2026|
 |Toontrack EZBass|1.3.4|Ardour, Reaper|tested with dxvk|Installed with *Toontrack Product Manager*|Ubuntu Studio 26.04|[Simo Erkinheimo](https://github.com/sirsipe), 29.07.2026|
 |MeldaProductions MDrummer|17.09|Reaper|-|-|elementary OS 8.1|[Dale Hards](https://www.facebook.com/groups/337102376387789/user/730215252/), 29.07.2026|
-|MeldaProductions MSoundFactory|?|Reaper|-|-|elementary OS 8.1|[Dale Hards](https://www.facebook.com/groups/337102376387789/user/730215252/), 29.07.2026|
+|MeldaProductions MSoundFactory|17.09|Reaper|-|-|elementary OS 8.1|[Dale Hards](https://www.facebook.com/groups/337102376387789/user/730215252/), 29.07.2026|
