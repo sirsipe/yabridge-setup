@@ -18,3 +18,4 @@ Note that some additional plugins are mentioned in [official yabridge page](http
 |All [Tokyo Labs' plugins](https://www.tokyodawn.net/tokyo-dawn-labs/)|?|?|?|-|?|[u/nevsky_sun](https://www.reddit.com/user/nevsky_sun/), 29.07.2026|
 |All [Valhalla DSP's plugins](https://valhalladsp.com/)|?|?|?|-|?|[u/nevsky_sun](https://www.reddit.com/user/nevsky_sun/), 29.07.2026|
 |Valhalla DSP SuperMassive|5.0.0|Reaper, Ardour|tested with dxvk|According to [u/nevsky_sun](https://www.reddit.com/user/nevsky_sun/), all Valhalla plugins work.|Ubuntu Studio 26.04|[Simo Erkinheimo](https://github.com/sirsipe), 29.07.2026|
+|Analog obsession - all plugins|???|Reaper, Ardour|-|-|Ubuntu studio 26.04|[FB Group: Linux Musicians](https://www.facebook.com/groups/linuxmusicians), 30.07.2026|
